@@ -13,6 +13,11 @@ import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ArffSaver;
+import weka.core.tokenizers.CharacterDelimitedTokenizer;
+import weka.core.tokenizers.Tokenizer;
+import weka.core.tokenizers.WordTokenizer;
+import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
@@ -36,7 +41,7 @@ public class FeatureExtractor {
 
 	static {
 		List<String> values = null;
-		ATTRIBUTES.add(new Attribute("class"));
+		ATTRIBUTES.add(new Attribute("classlabel"));
 		ATTRIBUTES.add(new Attribute("text", values));
 	}
 
@@ -60,9 +65,7 @@ public class FeatureExtractor {
 		Optional<Integer> classValue;
 		List<String> row;
 		int count = 0;
-		Instances data = new Instances(inFilename, ATTRIBUTES,
-				NUMBER_OF_INSTANCES);
-		data.setClass(ATTRIBUTES.get(0));
+		Instances data = initDataset(inFilename);
 		Instance inst;
 
 		try {
@@ -94,10 +97,15 @@ public class FeatureExtractor {
 				count++;
 			}
 
+			System.out.printf("Processed %s rows\n", count);
+
+			data = stringToWordVector(data);
+
 			saveArff(data, outFilePath(parentDir, inFilename));
-			System.out.printf("Saved %s rows\n", count);
-			
-			svm(data);
+			System.out.printf("Saved %s attributes and %s instances\n",
+					data.numAttributes(), data.size());
+
+			// svm(data);
 
 		} catch (Exception e) {
 
@@ -108,11 +116,38 @@ public class FeatureExtractor {
 		}
 
 	}
-	
+
+	private static Instances initDataset(String name) {
+		Instances data = new Instances(name, ATTRIBUTES, NUMBER_OF_INSTANCES);
+		data.setClass(ATTRIBUTES.get(0));
+
+		return data;
+	}
+
+	private static Instances stringToWordVector(Instances in) throws Exception {
+		StringToWordVector filter = new StringToWordVector();
+		// filter.setOptions(options);
+		filter.setLowerCaseTokens(true);
+		filter.setInputFormat(in);
+		
+		WordTokenizer tokenizer = new WordTokenizer();
+		
+		// Removed exclamation mark, single quote (negation words)
+		// 
+		
+		tokenizer.setDelimiters(" \r\n\t.,;:\"()?/\\&=%^~`|{}[]-1234567890");
+		
+		filter.setTokenizer(tokenizer);
+		//filter.set
+		Instances out = Filter.useFilter(in, filter);
+
+		return out;
+	}
+
 	private static void svm(Instances data) throws Exception {
-		//initialize svm classifier
-        LibSVM svm = new LibSVM();
-        svm.buildClassifier(data);
+		// initialize svm classifier
+		LibSVM svm = new LibSVM();
+		svm.buildClassifier(data);
 	}
 
 	private static Optional<Integer> classValue(String className) {
