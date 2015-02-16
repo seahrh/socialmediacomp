@@ -57,3 +57,12 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Project Specific
+# =========================
+
+.classpath
+.project
+.settings/
+eclipse-launch-profiles/
+target/
