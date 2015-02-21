@@ -2,15 +2,11 @@ package cs4242;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-import weka.classifiers.Classifier;
 import weka.classifiers.functions.LibSVM;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -19,31 +15,36 @@ import weka.core.Instances;
 import weka.core.SerializationHelper;
 import weka.core.converters.ArffSaver;
 import weka.core.stopwords.WordsFromFile;
-import weka.core.tokenizers.CharacterDelimitedTokenizer;
-import weka.core.tokenizers.Tokenizer;
 import weka.core.tokenizers.WordTokenizer;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+
 public class FeatureExtractor {
 
-	public static final ImmutableMap<String, String> CLASSES = ImmutableMap
+	private static final ImmutableMap<String, String> CLASSES = ImmutableMap
 			.<String, String> builder().put("positive", "1")
 			.put("negative", "-1").put("neutral", "0").build();
 
-	public static final ImmutableList<String> INPUT_FIELDS = ImmutableList
+	private static final ImmutableList<String> INPUT_FIELDS = ImmutableList
 			.<String> builder()
 			.add("tweet id", "user id", "username", "content", "sentiment",
 					"target", "annotator id").build();
 
-	public static final ArrayList<Attribute> ATTRIBUTES = new ArrayList<Attribute>();
+	private static final ArrayList<Attribute> ATTRIBUTES = new ArrayList<Attribute>();
+	
+	
+	
+	private static final int NUMBER_OF_INSTANCES = 900;
 
 	static {
 		// Class label attribute is nominal
@@ -72,12 +73,11 @@ public class FeatureExtractor {
 		ATTRIBUTES.add(new Attribute("text", values));
 	}
 
-	public static final int NUMBER_OF_INSTANCES = 900;
-
 	public static void main(String[] args) throws IOException {
 
-		if (args.length != 3) {
-			System.out.println("Usage: FeatureExtractor <input> <stopwords> <output model>");
+		if (args.length != 4) {
+			System.out
+					.println("Usage: FeatureExtractor <input> <stopwords> <output model>");
 			System.exit(1);
 		}
 
@@ -87,19 +87,26 @@ public class FeatureExtractor {
 
 		String stopwordsFilePath = args[1];
 		String modelFilePath = args[2];
+		String taggerPath = args[3];
 
 		String parentDir = inFile.getParent();
 		BufferedReader br = null;
 		String line;
+		String features;
 		String sentiment;
 		Optional<String> classValue;
 		List<String> row;
 		int count = 0;
 		Instances data = initDataset(inFilename);
 		Instance inst;
+		MaxentTagger tagger;
 
 		try {
 
+			System.out.println("Loading tagger...");
+			tagger = new MaxentTagger(taggerPath);
+			System.out.println("Tagger loaded successfully");
+			
 			br = new BufferedReader(new FileReader(inFile));
 
 			// Skip the header row
@@ -122,9 +129,11 @@ public class FeatureExtractor {
 				} else {
 					continue;
 				}
-				
-				//TODO Normalize the string before tokenizing
-				
+
+				// TODO Normalize the string before tokenizing
+
+				features = extract(row.get(INPUT_FIELDS.indexOf("content")), tagger);
+
 				inst.setValue(ATTRIBUTES.get(1),
 						row.get(INPUT_FIELDS.indexOf("content")));
 				data.add(inst);
@@ -134,15 +143,15 @@ public class FeatureExtractor {
 
 			System.out.printf("Processed %s rows\n", count);
 
-			data = stringToWordVector(data, stopwordsFilePath);
+			// data = stringToWordVector(data, stopwordsFilePath);
 
-			saveArff(data, outFilePath(parentDir, inFilename));
-			System.out.printf("Saved %s attributes and %s instances\n",
-					data.numAttributes(), data.size());
+			// saveArff(data, outFilePath(parentDir, inFilename));
+			// System.out.printf("Saved %s attributes and %s instances\n",
+			// data.numAttributes(), data.size());
 
-			svm(data, modelFilePath);
-			
-			loadModel(modelFilePath);
+			// svm(data, modelFilePath);
+
+			// loadModel(modelFilePath);
 
 		} catch (Exception e) {
 
@@ -152,6 +161,17 @@ public class FeatureExtractor {
 			System.out.println("Done!");
 		}
 
+	}
+
+	private static String extract(String tweet, MaxentTagger tagger) {
+		String features = "";
+		tweet = Strings.nullToEmpty(tweet.trim());
+		if (tweet.length() != 0) {
+
+			features = tagger.tagString(tweet);
+			System.out.println(features);
+		}
+		return features;
 	}
 
 	private static Instances initDataset(String name) {
@@ -197,14 +217,15 @@ public class FeatureExtractor {
 	private static void svm(Instances data, String modelPath) throws Exception {
 		// initialize svm classifier
 		LibSVM svm = new LibSVM();
-		//svm.setModelFile(new File(modelPath));
+		// svm.setModelFile(new File(modelPath));
 		svm.buildClassifier(data);
 		SerializationHelper.write(modelPath, svm);
-		System.out.printf("SVM classifier trained\nModel file saved: %s\n", modelPath);
+		System.out.printf("SVM classifier trained\nModel file saved: %s\n",
+				modelPath);
 	}
-	
+
 	private static LibSVM loadModel(String path) throws Exception {
-		LibSVM svm = (LibSVM)SerializationHelper.read(path);
+		LibSVM svm = (LibSVM) SerializationHelper.read(path);
 		System.out.println("SVM classifer loaded from file successfully.");
 		return svm;
 	}

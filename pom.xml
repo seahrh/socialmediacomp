@@ -51,6 +51,18 @@
 			<artifactId>LibSVM</artifactId>
 			<version>1.0.6</version>
 		</dependency>
+		<!-- Version 3.4.1 is latest version for Java 7. 3.5.0 and up requires Java 8. -->
+		<dependency>
+			<groupId>edu.stanford.nlp</groupId>
+			<artifactId>stanford-corenlp</artifactId>
+			<version>3.4.1</version>
+		</dependency>
+		<!-- <dependency>
+			<groupId>edu.stanford.nlp</groupId>
+			<artifactId>stanford-corenlp</artifactId>
+			<version>3.5.1</version>
+			<classifier>models</classifier>
+		</dependency> -->
 		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>com.google.appengine</groupId>
