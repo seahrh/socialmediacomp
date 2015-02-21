@@ -1,11 +1,16 @@
 package cs4242;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import weka.classifiers.functions.LibSVM;
 import weka.core.Attribute;
@@ -19,6 +24,8 @@ import weka.core.tokenizers.WordTokenizer;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -41,9 +48,7 @@ public class FeatureExtractor {
 					"target", "annotator id").build();
 
 	private static final ArrayList<Attribute> ATTRIBUTES = new ArrayList<Attribute>();
-	
-	
-	
+
 	private static final int NUMBER_OF_INSTANCES = 900;
 
 	static {
@@ -75,9 +80,9 @@ public class FeatureExtractor {
 
 	public static void main(String[] args) throws IOException {
 
-		if (args.length != 4) {
+		if (args.length != 6) {
 			System.out
-					.println("Usage: FeatureExtractor <input> <stopwords> <output model>");
+					.println("Usage: FeatureExtractor <input> <stopwords> <output model> <tagger model> <tagged output> <lexicon>");
 			System.exit(1);
 		}
 
@@ -88,6 +93,8 @@ public class FeatureExtractor {
 		String stopwordsFilePath = args[1];
 		String modelFilePath = args[2];
 		String taggerPath = args[3];
+		String taggedOutFilePath = args[4];
+		String lexiconFilePath = args[5];
 
 		String parentDir = inFile.getParent();
 		BufferedReader br = null;
@@ -100,13 +107,16 @@ public class FeatureExtractor {
 		Instances data = initDataset(inFilename);
 		Instance inst;
 		MaxentTagger tagger;
+		List<String> taggedTweets = new ArrayList<String>();
 
 		try {
-
-			System.out.println("Loading tagger...");
-			tagger = new MaxentTagger(taggerPath);
-			System.out.println("Tagger loaded successfully");
 			
+			final Map<String, Set<MpqaClue>> MPQA_LEXICON = MpqaClue.cluesFromFile(lexiconFilePath);
+
+			//System.out.println("Loading tagger...");
+			//tagger = new MaxentTagger(taggerPath);
+			//System.out.println("Tagger loaded successfully. Tagging tweets...");
+
 			br = new BufferedReader(new FileReader(inFile));
 
 			// Skip the header row
@@ -116,8 +126,8 @@ public class FeatureExtractor {
 			while ((line = br.readLine()) != null) {
 				inst = new DenseInstance(2);
 				inst.setDataset(data);
-				row = Lists.newArrayList(Splitter.on('\t').trimResults()
-						.split(line));
+				row = Splitter.on('\t').trimResults()
+						.splitToList(line);
 
 				sentiment = row.get(INPUT_FIELDS.indexOf("sentiment"));
 
@@ -132,7 +142,10 @@ public class FeatureExtractor {
 
 				// TODO Normalize the string before tokenizing
 
-				features = extract(row.get(INPUT_FIELDS.indexOf("content")), tagger);
+				//features = extract(row.get(INPUT_FIELDS.indexOf("content")),
+						//tagger);
+
+				//taggedTweets.add(features);
 
 				inst.setValue(ATTRIBUTES.get(1),
 						row.get(INPUT_FIELDS.indexOf("content")));
@@ -142,6 +155,8 @@ public class FeatureExtractor {
 			}
 
 			System.out.printf("Processed %s rows\n", count);
+
+			saveTaggedTweets(taggedTweets, taggedOutFilePath);
 
 			// data = stringToWordVector(data, stopwordsFilePath);
 
@@ -163,15 +178,83 @@ public class FeatureExtractor {
 
 	}
 
+	private static void saveTaggedTweets(List<String> tweets, String path)
+			throws IOException {
+		File outFile = new File(path);
+		BufferedWriter bw = null;
+
+		try {
+			bw = new BufferedWriter(new FileWriter(outFile));
+			for (String tweet : tweets) {
+				bw.write(tweet + "\n");
+			}
+		} finally {
+			if (bw != null) {
+				bw.close();
+			}
+		}
+	}
+
 	private static String extract(String tweet, MaxentTagger tagger) {
 		String features = "";
-		tweet = Strings.nullToEmpty(tweet.trim());
-		if (tweet.length() != 0) {
 
-			features = tagger.tagString(tweet);
-			System.out.println(features);
+		// Normalize to lowercase
+
+		String val = Strings.nullToEmpty(tweet).toLowerCase();
+
+		// Trim whitespace and single/double quotes enclosing the tweet
+		// so that RT can be correctly tagged as retweet instead of NNP
+
+		val = CharMatcher.anyOf("'\"").or(CharMatcher.WHITESPACE).trimFrom(val);
+
+		if (val.length() != 0) {
+
+			features = tagger.tagString(val);
+
 		}
 		return features;
+	}
+
+	/**
+	 * Remove tags irrelevant to sentiment analysis.
+	 * 
+	 * @param s
+	 * @return
+	 */
+	private static String normalize(String s) {
+		String val = Strings.nullToEmpty(s);
+		String feature;
+		String term;
+		String pos;
+		int delimiterIndex = 0;
+		StringBuffer normalized;
+		List<String> features = Splitter.on(' ').trimResults()
+				.omitEmptyStrings().splitToList(val);
+
+		for (int i = 0; i < features.size(); i++) {
+			feature = features.get(i);
+
+			// Split into term and POS tag
+
+			delimiterIndex = feature.lastIndexOf('_');
+			term = feature.substring(0, delimiterIndex);
+			pos = feature.substring(delimiterIndex);
+
+			// Remove POS irrelevant to sentiment analysis
+
+			/*
+			 * if (pos.equals("_RT") || pos.equals("_:") || ) {
+			 * features.remove(i); continue; }
+			 */
+
+			// TODO Normalize term
+			normalized = new StringBuffer(term);
+			normalized.append("_");
+			normalized.append(pos);
+			features.set(i, normalized.toString());
+		}
+
+		return Joiner.on(" ").join(features);
 	}
 
 	private static Instances initDataset(String name) {
@@ -189,6 +272,8 @@ public class FeatureExtractor {
 		filter.setInputFormat(in);
 
 		filter.setTokenizer(tokenizer());
+
+		// TODO should we still use stopwords?
 		filter.setStopwordsHandler(stopwords(stopwordsFilePath));
 		filter.setAttributeIndices("2");
 
@@ -204,6 +289,8 @@ public class FeatureExtractor {
 		// TODO emoticons
 
 		tokenizer.setDelimiters(" \r\n\t.,;:\"()?/\\&=%^~`|{}[]-1234567890");
+
+		// tokenizer.setDelimiters(" \r\n\t.,;:");
 		return tokenizer;
 	}
 
