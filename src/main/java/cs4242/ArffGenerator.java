@@ -34,7 +34,7 @@ import com.google.common.io.Files;
 
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 
-public class FeatureExtractor {
+public final class ArffGenerator {
 
 	private static final ImmutableMap<String, String> CLASSES = ImmutableMap
 			.<String, String> builder().put("positive", "1")
@@ -76,11 +76,18 @@ public class FeatureExtractor {
 		ATTRIBUTES.add(new Attribute("text", values));
 	}
 
-	public static void main(String[] args) throws IOException {
+	private ArffGenerator() {
+		// Private constructor, not meant to be instantiated
+	}
 
-		if (args.length != 6) {
+	public static void main(String[] args) throws IOException {
+		
+		long startTime = System.currentTimeMillis();
+		long endTime;
+
+		if (args.length != 3) {
 			System.out
-					.println("Usage: FeatureExtractor <input> <stopwords> <output model> <tagger model> <tagged output> <lexicon>");
+					.println("Usage: FeatureExtractor <input> <tagger model> <lexicon>");
 			System.exit(1);
 		}
 
@@ -88,11 +95,11 @@ public class FeatureExtractor {
 		String inFilename = Files.getNameWithoutExtension(inFilePath);
 		File inFile = new File(inFilePath);
 
-		String stopwordsFilePath = args[1];
-		String modelFilePath = args[2];
-		String taggerPath = args[3];
-		String taggedOutFilePath = args[4];
-		String lexiconFilePath = args[5];
+		// String stopwordsFilePath = args[1];
+		// String modelFilePath = args[2];
+		String taggerPath = args[1];
+		// String taggedOutFilePath = args[4];
+		String lexiconPath = args[2];
 
 		String parentDir = inFile.getParent();
 		BufferedReader br = null;
@@ -104,28 +111,25 @@ public class FeatureExtractor {
 		int count = 0;
 		Instances data = initDataset(inFilename);
 		Instance inst;
-		MaxentTagger tagger;
-		List<String> taggedTweets = new ArrayList<String>();
+		FeatureExtractor fe;
+		List<String> tagged = new ArrayList<String>();
 
 		try {
-			
-			final Map<String, Set<MpqaClue>> MPQA_LEXICON = MpqaClue.cluesFromFile(lexiconFilePath);
 
-			//System.out.println("Loading tagger...");
-			//tagger = new MaxentTagger(taggerPath);
-			//System.out.println("Tagger loaded successfully. Tagging tweets...");
+			fe = new FeatureExtractor(taggerPath, lexiconPath);
 
 			br = new BufferedReader(new FileReader(inFile));
 
 			// Skip the header row
 
 			br.readLine();
+			
+			System.out.println("Extracting features...");
 
 			while ((line = br.readLine()) != null) {
 				inst = new DenseInstance(2);
 				inst.setDataset(data);
-				row = Splitter.on('\t').trimResults()
-						.splitToList(line);
+				row = Splitter.on('\t').trimResults().splitToList(line);
 
 				sentiment = row.get(INPUT_FIELDS.indexOf("sentiment"));
 
@@ -138,12 +142,9 @@ public class FeatureExtractor {
 					continue;
 				}
 
-				// TODO Normalize the string before tokenizing
+				features = fe.extract(row.get(INPUT_FIELDS.indexOf("content")));
 
-				//features = extract(row.get(INPUT_FIELDS.indexOf("content")),
-						//tagger);
-
-				//taggedTweets.add(features);
+				tagged.add(features);
 
 				inst.setValue(ATTRIBUTES.get(1),
 						row.get(INPUT_FIELDS.indexOf("content")));
@@ -152,9 +153,10 @@ public class FeatureExtractor {
 				count++;
 			}
 
-			System.out.printf("Processed %s rows\n", count);
+			System.out.printf("Features extracted. Processed %s rows\n", count);
 
-			saveTaggedTweets(taggedTweets, taggedOutFilePath);
+			save(fe.pruned(), FeatureExtractor.PRUNED_POS_FILE);
+			save(tagged, FeatureExtractor.TAGGED_POS_FILE);
 
 			// data = stringToWordVector(data, stopwordsFilePath);
 
@@ -170,89 +172,14 @@ public class FeatureExtractor {
 
 			e.printStackTrace();
 		} finally {
-			br.close();
-			System.out.println("Done!");
-		}
-
-	}
-
-	private static void saveTaggedTweets(List<String> tweets, String path)
-			throws IOException {
-		File outFile = new File(path);
-		BufferedWriter bw = null;
-
-		try {
-			bw = new BufferedWriter(new FileWriter(outFile));
-			for (String tweet : tweets) {
-				bw.write(tweet + "\n");
+			if (br != null) {
+				br.close();
 			}
-		} finally {
-			if (bw != null) {
-				bw.close();
-			}
-		}
-	}
-
-	private static String extract(String tweet, MaxentTagger tagger) {
-		String features = "";
-
-		// Normalize to lowercase
-
-		String val = Strings.nullToEmpty(tweet).toLowerCase();
-
-		// Trim whitespace and single/double quotes enclosing the tweet
-		// so that RT can be correctly tagged as retweet instead of NNP
-
-		val = CharMatcher.anyOf("'\"").or(CharMatcher.WHITESPACE).trimFrom(val);
-
-		if (val.length() != 0) {
-
-			features = tagger.tagString(val);
-
-		}
-		return features;
-	}
-
-	/**
-	 * Remove tags irrelevant to sentiment analysis.
-	 * 
-	 * @param s
-	 * @return
-	 */
-	private static String normalize(String s) {
-		String val = Strings.nullToEmpty(s);
-		String feature;
-		String term;
-		String pos;
-		int delimiterIndex = 0;
-		StringBuffer normalized;
-		List<String> features = Splitter.on(' ').trimResults()
-				.omitEmptyStrings().splitToList(val);
-
-		for (int i = 0; i < features.size(); i++) {
-			feature = features.get(i);
-
-			// Split into term and POS tag
-
-			delimiterIndex = feature.lastIndexOf('_');
-			term = feature.substring(0, delimiterIndex);
-			pos = feature.substring(delimiterIndex);
-
-			// Remove POS irrelevant to sentiment analysis
-
-			/*
-			 * if (pos.equals("_RT") || pos.equals("_:") || ) {
-			 * features.remove(i); continue; }
-			 */
-
-			// TODO Normalize term
-			normalized = new StringBuffer(term);
-			normalized.append("_");
-			normalized.append(pos);
-			features.set(i, normalized.toString());
+			
+			endTime = System.currentTimeMillis();
+			System.out.printf("Done! Run time: %ss\n", (endTime - startTime)/1000);
 		}
 
-		return Joiner.on(" ").join(features);
 	}
 
 	private static Instances initDataset(String name) {
@@ -339,6 +266,24 @@ public class FeatureExtractor {
 		arff.setFile(new File(path));
 
 		arff.writeBatch();
+	}
+
+	public static void save(List<String> output, String filePath)
+			throws IOException {
+		File file = new File(filePath);
+		BufferedWriter bw = null;
+
+		try {
+			bw = new BufferedWriter(new FileWriter(file));
+			for (String item : output) {
+				bw.write(item + "\n");
+			}
+			System.out.printf("Saved %s items: %s\n", output.size(), filePath);
+		} finally {
+			if (bw != null) {
+				bw.close();
+			}
+		}
 	}
 
 }
