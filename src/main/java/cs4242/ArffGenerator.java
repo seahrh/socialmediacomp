@@ -81,7 +81,7 @@ public final class ArffGenerator {
 	}
 
 	public static void main(String[] args) throws IOException {
-		
+
 		long startTime = System.currentTimeMillis();
 		long endTime;
 
@@ -123,7 +123,7 @@ public final class ArffGenerator {
 			// Skip the header row
 
 			br.readLine();
-			
+
 			System.out.println("Extracting features...");
 
 			while ((line = br.readLine()) != null) {
@@ -146,8 +146,7 @@ public final class ArffGenerator {
 
 				tagged.add(features);
 
-				inst.setValue(ATTRIBUTES.get(1),
-						row.get(INPUT_FIELDS.indexOf("content")));
+				inst.setValue(ATTRIBUTES.get(1), features);
 				data.add(inst);
 
 				count++;
@@ -158,11 +157,11 @@ public final class ArffGenerator {
 			save(fe.pruned(), FeatureExtractor.PRUNED_POS_FILE);
 			save(tagged, FeatureExtractor.TAGGED_POS_FILE);
 
-			// data = stringToWordVector(data, stopwordsFilePath);
+			data = stringToWordVector(data);
 
-			// saveArff(data, outFilePath(parentDir, inFilename));
-			// System.out.printf("Saved %s attributes and %s instances\n",
-			// data.numAttributes(), data.size());
+			saveArff(data, outFilePath(parentDir, inFilename));
+			System.out.printf("Saved %s attributes and %s instances\n",
+					data.numAttributes(), data.size());
 
 			// svm(data, modelFilePath);
 
@@ -175,9 +174,10 @@ public final class ArffGenerator {
 			if (br != null) {
 				br.close();
 			}
-			
+
 			endTime = System.currentTimeMillis();
-			System.out.printf("Done! Run time: %ss\n", (endTime - startTime)/1000);
+			System.out.printf("Done! Run time: %ss\n",
+					(endTime - startTime) / 1000);
 		}
 
 	}
@@ -189,17 +189,16 @@ public final class ArffGenerator {
 		return data;
 	}
 
-	private static Instances stringToWordVector(Instances in,
-			String stopwordsFilePath) throws Exception {
+	private static Instances stringToWordVector(Instances in) throws Exception {
 		StringToWordVector filter = new StringToWordVector();
 		// filter.setOptions(options);
-		filter.setLowerCaseTokens(true);
+		//filter.setLowerCaseTokens(true);
 		filter.setInputFormat(in);
 
 		filter.setTokenizer(tokenizer());
 
 		// TODO should we still use stopwords?
-		filter.setStopwordsHandler(stopwords(stopwordsFilePath));
+		//filter.setStopwordsHandler(stopwords(stopwordsFilePath));
 		filter.setAttributeIndices("2");
 
 		Instances out = Filter.useFilter(in, filter);
@@ -209,13 +208,7 @@ public final class ArffGenerator {
 
 	private static WordTokenizer tokenizer() {
 		WordTokenizer tokenizer = new WordTokenizer();
-
-		// Removed exclamation mark, single quote (negation words)
-		// TODO emoticons
-
-		tokenizer.setDelimiters(" \r\n\t.,;:\"()?/\\&=%^~`|{}[]-1234567890");
-
-		// tokenizer.setDelimiters(" \r\n\t.,;:");
+		tokenizer.setDelimiters(" \r\n\t");
 		return tokenizer;
 	}
 

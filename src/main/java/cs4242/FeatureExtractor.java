@@ -21,16 +21,26 @@ public class FeatureExtractor {
 	protected static final String PRUNED_POS_FILE = "C:\\Feng\\cs4242\\prunedpos.txt";
 	protected static final String TAGGED_POS_FILE = "C:\\Feng\\cs4242\\tagged.txt";
 
-	// TODO Retain cardinal numbers such as 'million'
+	// Retain cardinal numbers such as 'million'
 	// TODO Negation in MD such as 'cannot'
 	// TODO Negation in IN such as 'against'
 	// TODO Negation in DT such as 'neither'
 	// TODO Modifiers in . such as '!!'
 
-	private static final Set<String> POS_EXCLUSION = Sets.newHashSet("_``",
-			"_''", "_(", "_)", "_,", "_--", "_.", "_:", "_RT", "_CC", "_CD",
-			"_DT", "_EX", "_IN", "_LS", "_PDT", "_POS", "_PRP", "_PRP$",
-			"_SYM", "_TO", "_WDT", "_WP", "_WP$", "WRB");
+	private static final Set<String> POS_EXCLUSION_LIST = Sets.newHashSet(
+			"_RT", "_CC", "_DT", "_EX", "_IN", "_LS", "_PDT", "_POS", "_PRP",
+			"_PRP$", "_SYM", "_TO", "_WDT", "_WP", "_WP$", "WRB");
+
+	private static final Set<String> PUNCTUATION_POS = Sets.newHashSet("_``",
+			"_''", "_(", "_)", "_,", "_--", "_.", "_:");
+
+	// Removed hyphen (-) because don't want to break up words like 'anti-hero'
+	// Removed apostrophe (-) because don't want to break up words like 'don't'
+
+	private static final char[] PUNCTUATION_MARKS = "[](){}:,`.!?\";\\/"
+			.toCharArray();
+
+	private static final String NOISE_CHARACTERS = "*%&=^~|";
 
 	private Map<String, Set<MpqaClue>> mpqa;
 	private MaxentTagger tagger;
@@ -62,7 +72,8 @@ public class FeatureExtractor {
 		String features = "";
 		String intermediate = preprocess(text);
 		intermediate = tagPos(intermediate);
-		intermediate = prunePos(intermediate);
+		intermediate = prunePos(intermediate, POS_EXCLUSION_LIST);
+		intermediate = prunePos(intermediate, PUNCTUATION_POS);
 
 		features = intermediate;
 		return features;
@@ -78,7 +89,7 @@ public class FeatureExtractor {
 	 * @param text
 	 * @return
 	 */
-	private String prunePos(String text) {
+	private String prunePos(String text, Set<String> posToPrune) {
 
 		// String term;
 		String pos;
@@ -98,7 +109,7 @@ public class FeatureExtractor {
 
 			pos = feature.substring(delimIndex);
 
-			if (POS_EXCLUSION.contains(pos)) {
+			if (posToPrune.contains(pos)) {
 
 				pruned.add(feature);
 			} else {
@@ -118,16 +129,42 @@ public class FeatureExtractor {
 
 		String val = Strings.nullToEmpty(text).toLowerCase();
 
-		// Trim whitespace and single/double quotes enclosing the tweet
-		// so that RT can be correctly tagged as retweet instead of NNP
+		// Strip noisy characters
 
-		val = CharMatcher.WHITESPACE.trimFrom(val);
+		val = CharMatcher.anyOf(NOISE_CHARACTERS).removeFrom(val);
 
-		// Strip noise characters
+		List<String> tokens = Splitter.on(CharMatcher.WHITESPACE).trimResults()
+				.omitEmptyStrings().splitToList(val);
 
-		val = CharMatcher.anyOf(",;\"()\\&=^~`|{}[]").removeFrom(val);
+		List<String> result = new ArrayList<String>();
 
-		return val;
+		StringBuffer replacement;
+
+		for (String token : tokens) {
+			if (token.startsWith("http") || token.startsWith("#")
+					|| token.startsWith("@")) {
+				// do nothing
+			} else {
+
+				// TODO remove, this doesn't work
+				// Pad punctuation marks with whitespace, for tokenizing later
+
+				for (int i = 0; i < PUNCTUATION_MARKS.length; i++) {
+					replacement = new StringBuffer(" ");
+					replacement.append(PUNCTUATION_MARKS[i]);
+					replacement.append(" ");
+					token = CharMatcher.is(PUNCTUATION_MARKS[i]).replaceFrom(
+							token, replacement);
+
+				}
+
+				// Strip digits
+
+				token = CharMatcher.DIGIT.removeFrom(token);
+			}
+			result.add(token);
+		}
+
+		return CharMatcher.WHITESPACE.trimFrom(Joiner.on(' ').join(result));
 	}
-
 }
