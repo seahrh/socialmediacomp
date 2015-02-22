@@ -157,11 +157,11 @@ public final class ArffGenerator {
 			save(fe.pruned(), FeatureExtractor.PRUNED_POS_FILE);
 			save(tagged, FeatureExtractor.TAGGED_POS_FILE);
 
-			data = stringToWordVector(data);
+			//data = stringToWordVector(data);
 
-			saveArff(data, outFilePath(parentDir, inFilename));
-			System.out.printf("Saved %s attributes and %s instances\n",
-					data.numAttributes(), data.size());
+			//saveArff(data, outFilePath(parentDir, inFilename));
+			//System.out.printf("Saved %s attributes and %s instances\n",
+					//data.numAttributes(), data.size());
 
 			// svm(data, modelFilePath);
 

@@ -1,5 +1,7 @@
 package cs4242;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,12 +29,12 @@ public class FeatureExtractor {
 	// TODO Negation in DT such as 'neither'
 	// TODO Modifiers in . such as '!!'
 
-	private static final Set<String> POS_EXCLUSION_LIST = Sets.newHashSet(
-			"_RT", "_CC", "_DT", "_EX", "_IN", "_LS", "_PDT", "_POS", "_PRP",
-			"_PRP$", "_SYM", "_TO", "_WDT", "_WP", "_WP$", "WRB");
+	private static final Set<String> POS_EXCLUSION_LIST = Sets.newHashSet("RT",
+			"CC", "DT", "EX", "IN", "LS", "PDT", "POS", "PRP", "PRP$", "SYM",
+			"TO", "WDT", "WP", "WP$", "WRB");
 
-	private static final Set<String> PUNCTUATION_POS = Sets.newHashSet("_``",
-			"_''", "_(", "_)", "_,", "_--", "_.", "_:");
+	private static final Set<String> PUNCTUATION_POS = Sets.newHashSet("``",
+			"''", "(", ")", ",", "--", ".", ":");
 
 	// Removed hyphen (-) because don't want to break up words like 'anti-hero'
 	// Removed apostrophe (-) because don't want to break up words like 'don't'
@@ -69,14 +71,13 @@ public class FeatureExtractor {
 	}
 
 	private String pipeline(String text) {
-		String features = "";
-		String intermediate = preprocess(text);
-		intermediate = tagPos(intermediate);
-		intermediate = prunePos(intermediate, POS_EXCLUSION_LIST);
-		intermediate = prunePos(intermediate, PUNCTUATION_POS);
 
-		features = intermediate;
-		return features;
+		String intermediate = preprocess(text);
+		List<Feature> features = tagPos(intermediate);
+		features = prunePos(features, POS_EXCLUSION_LIST);
+		features = prunePos(features, PUNCTUATION_POS);
+
+		return Feature.toString(features);
 	}
 
 	public List<String> pruned() {
@@ -89,39 +90,43 @@ public class FeatureExtractor {
 	 * @param text
 	 * @return
 	 */
-	private String prunePos(String text, Set<String> posToPrune) {
+	private List<Feature> prunePos(List<Feature> features,
+			Set<String> posToPrune) {
+		List<Feature> result = new ArrayList<Feature>(features.size());
 
-		// String term;
-		String pos;
-		int delimIndex = 0;
+		for (Feature f : features) {
 
-		List<String> features = Splitter.on(CharMatcher.WHITESPACE)
-				.trimResults().omitEmptyStrings().splitToList(text);
+			if (posToPrune.contains(f.pos())) {
 
-		List<String> result = new ArrayList<String>();
+				pruned.add(f.toString());
 
-		for (String feature : features) {
-
-			// Split into term and POS tag
-
-			delimIndex = feature.lastIndexOf('_');
-			// term = feature.substring(0, delimIndex);
-
-			pos = feature.substring(delimIndex);
-
-			if (posToPrune.contains(pos)) {
-
-				pruned.add(feature);
 			} else {
-				result.add(feature);
+				result.add(f);
 			}
 		}
 
-		return Joiner.on(' ').join(result);
+		return result;
 	}
 
-	private String tagPos(String text) {
-		return tagger.tagString(text);
+	private List<Feature> tagPos(String text) {
+		String term;
+		String pos;
+		int delimIndex = 0;
+		String tagged = tagger.tagString(text);
+
+		List<Feature> features = new ArrayList<Feature>();
+		List<String> tokens = Splitter.on(CharMatcher.WHITESPACE).trimResults()
+				.omitEmptyStrings().splitToList(tagged);
+		for (String token : tokens) {
+			delimIndex = token.lastIndexOf('_');
+			checkState(delimIndex + 1 < token.length(),
+					"Missing POS tag for token [%s]", token);
+			term = token.substring(0, delimIndex);
+			pos = token.substring(delimIndex + 1);
+			features.add(new Feature(term, pos));
+		}
+
+		return features;
 	}
 
 	private static String preprocess(String text) {
