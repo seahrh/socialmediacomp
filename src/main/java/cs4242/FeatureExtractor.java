@@ -48,7 +48,7 @@ public class FeatureExtractor {
 			.toCharArray();
 
 	private static final String NOISE_CHARACTERS = "*%&=^~|";
-	
+
 	public static final int STRONG_POSITIVE_INDEX = 0;
 	public static final int WEAK_POSITIVE_INDEX = 1;
 	public static final int STRONG_NEGATIVE_INDEX = 2;
@@ -76,7 +76,7 @@ public class FeatureExtractor {
 
 		mpqa = MpqaClue.load(lexiconPath);
 
-		System.out.println("Loading tagger...");
+		System.out.println("Loading POS tagger...");
 		tagger = new MaxentTagger(taggerPath);
 		System.out.println("Tagger loaded successfully.");
 
@@ -104,49 +104,83 @@ public class FeatureExtractor {
 
 		return features;
 	}
-	
+
 	public static int[] countSentiment(List<Feature> features) {
 		int[] count = new int[8];
-		
+		boolean negated;
+
 		for (Feature f : features) {
+			negated = f.negated();
+
+			// If feature is negated, ignore sentiment
+			// Do not reverse polarity
+
+			if (negated) {
+				continue;
+			}
+
 			if (f.stronglySubjective()) {
-				
+
 				if (f.positiveSentiment()) {
 					count[STRONG_POSITIVE_INDEX]++;
-				} 
-				
+				}
+
 				if (f.negativeSentiment()) {
 					count[STRONG_NEGATIVE_INDEX]++;
 				}
-				
+
 				if (f.neutralSentiment()) {
-					count[STRONG_NEUTRAL_INDEX]++; 
+					count[STRONG_NEUTRAL_INDEX]++;
 				}
-				
+
 				if (f.positiveAndNegativeSentiment()) {
 					count[STRONG_POSNEG_INDEX]++;
 				}
-				
+
 			} else {
+				
+				// Weakly subjective
+				
 				if (f.positiveSentiment()) {
 					count[WEAK_POSITIVE_INDEX]++;
-				} 
-				
+				}
+
 				if (f.negativeSentiment()) {
 					count[WEAK_NEGATIVE_INDEX]++;
 				}
-				
+
 				if (f.neutralSentiment()) {
-					count[WEAK_NEUTRAL_INDEX]++; 
+					count[WEAK_NEUTRAL_INDEX]++;
 				}
-				
+
 				if (f.positiveAndNegativeSentiment()) {
 					count[WEAK_POSNEG_INDEX]++;
 				}
 			}
 		}
-		
+
 		return count;
+	}
+	
+	public static String countSentimentToString(int[] count) {
+		StringBuffer sb = new StringBuffer("[ ps:");
+		sb.append(count[STRONG_POSITIVE_INDEX]);
+		sb.append(" pw:");
+		sb.append(count[WEAK_POSITIVE_INDEX]);
+		sb.append(" ns:");
+		sb.append(count[STRONG_NEGATIVE_INDEX]);
+		sb.append(" nw:");
+		sb.append(count[WEAK_NEGATIVE_INDEX]);
+		sb.append(" us:");
+		sb.append(count[STRONG_NEUTRAL_INDEX]);
+		sb.append(" uw:");
+		sb.append(count[WEAK_NEUTRAL_INDEX]);
+		//sb.append(" bs:");
+		//sb.append(count[STRONG_POSNEG_INDEX]);
+		//sb.append(" bw:");
+		//sb.append(count[WEAK_POSNEG_INDEX]);
+		sb.append(" ] ");
+		return sb.toString();
 	}
 
 	private List<Feature> detectSentiment(List<Feature> features) {
@@ -328,7 +362,8 @@ public class FeatureExtractor {
 				}
 				negationWords.add(line);
 			}
-			System.out.printf("Loaded %s negation words\n", negationWords.size());
+			System.out.printf("Loaded %s negation words\n",
+					negationWords.size());
 		} finally {
 			if (br != null) {
 				br.close();

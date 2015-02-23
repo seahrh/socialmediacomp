@@ -8,8 +8,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import weka.classifiers.functions.LibSVM;
 import weka.core.Attribute;
@@ -23,16 +21,11 @@ import weka.core.tokenizers.WordTokenizer;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-
-import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 
 public final class ArffGenerator {
 
@@ -76,13 +69,13 @@ public final class ArffGenerator {
 		ATTRIBUTES.add(new Attribute("negative_weak")); // Index 4
 		ATTRIBUTES.add(new Attribute("neutral_strong")); // Index 5
 		ATTRIBUTES.add(new Attribute("neutral_weak")); // Index 6
-		ATTRIBUTES.add(new Attribute("posneg_strong")); // Index 7
-		ATTRIBUTES.add(new Attribute("posneg_weak")); // Index 8
+		//ATTRIBUTES.add(new Attribute("posneg_strong")); // Index 7
+		//ATTRIBUTES.add(new Attribute("posneg_weak")); // Index 8
 
 		// Text attribute is a string
 
 		values = null;
-		ATTRIBUTES.add(new Attribute("text", values)); // Index 9
+		ATTRIBUTES.add(new Attribute("text", values)); // Index 7
 
 	}
 
@@ -95,9 +88,9 @@ public final class ArffGenerator {
 		long startTime = System.currentTimeMillis();
 		long endTime;
 
-		if (args.length != 4) {
+		if (args.length != 5) {
 			System.out
-					.println("Usage: FeatureExtractor <input> <POS tagger> <sentiment lexicon> <negation words>");
+					.println("Usage: FeatureExtractor <input> <POS tagger> <sentiment lexicon> <negation words> <model output>");
 			System.exit(1);
 		}
 
@@ -106,11 +99,12 @@ public final class ArffGenerator {
 		File inFile = new File(inFilePath);
 
 		// String stopwordsFilePath = args[1];
-		// String modelFilePath = args[2];
+		
 		String taggerPath = args[1];
-		// String taggedOutFilePath = args[4];
+		
 		String lexiconPath = args[2];
 		String negationPath = args[3];
+		String modelPath = args[4];
 
 		String parentDir = inFile.getParent();
 		BufferedReader br = null;
@@ -126,6 +120,7 @@ public final class ArffGenerator {
 		FeatureExtractor fe;
 		List<String> tagged = new ArrayList<String>();
 		int[] sentimentCount;
+		StringBuffer sb;
 
 		try {
 
@@ -174,16 +169,24 @@ public final class ArffGenerator {
 						sentimentCount[FeatureExtractor.STRONG_NEUTRAL_INDEX]);
 				inst.setValue(ATTRIBUTES.get(6),
 						sentimentCount[FeatureExtractor.WEAK_NEUTRAL_INDEX]);
-				inst.setValue(ATTRIBUTES.get(7),
-						sentimentCount[FeatureExtractor.STRONG_POSNEG_INDEX]);
-				inst.setValue(ATTRIBUTES.get(8),
-						sentimentCount[FeatureExtractor.WEAK_POSNEG_INDEX]);
+				//inst.setValue(ATTRIBUTES.get(7),
+					//	sentimentCount[FeatureExtractor.STRONG_POSNEG_INDEX]);
+				//inst.setValue(ATTRIBUTES.get(8),
+					//	sentimentCount[FeatureExtractor.WEAK_POSNEG_INDEX]);
 
 				// Concat features into string delimited by whitespace
 
 				featuresString = Feature.toString(features);
-				tagged.add(featuresString);
-				inst.setValue(ATTRIBUTES.get(9), featuresString);
+				inst.setValue(ATTRIBUTES.get(7), featuresString);
+
+				// Debug output
+
+				sb = new StringBuffer(classValue.get());
+				sb.append(" ");
+				sb.append(FeatureExtractor
+						.countSentimentToString(sentimentCount));
+				sb.append(featuresString);
+				tagged.add(sb.toString());
 
 				data.add(inst);
 
@@ -201,9 +204,9 @@ public final class ArffGenerator {
 			System.out.printf("Saved %s attributes and %s instances\n",
 					data.numAttributes(), data.size());
 
-			// svm(data, modelFilePath);
+			//svm(data, modelPath);
 
-			// loadModel(modelFilePath);
+			//loadModel(modelPath);
 
 		} catch (Exception e) {
 
@@ -257,19 +260,22 @@ public final class ArffGenerator {
 
 	}
 
-	private static void svm(Instances data, String modelPath) throws Exception {
+	private static void svm(Instances data, String filePath) throws Exception {
 		// initialize svm classifier
 		LibSVM svm = new LibSVM();
 		// svm.setModelFile(new File(modelPath));
+		System.out.println("Training SVM classifier...");
 		svm.buildClassifier(data);
-		SerializationHelper.write(modelPath, svm);
-		System.out.printf("SVM classifier trained\nModel file saved: %s\n",
-				modelPath);
+		System.out.println("Trained SVM classifier");
+		SerializationHelper.write(filePath, svm);
+		System.out.printf("Saved classifier to model file:\n\t%s\n",
+				filePath);
 	}
 
-	private static LibSVM loadModel(String path) throws Exception {
-		LibSVM svm = (LibSVM) SerializationHelper.read(path);
-		System.out.println("SVM classifer loaded from file successfully.");
+	private static LibSVM loadModel(String filePath) throws Exception {
+		System.out.printf("Loading SVM classifier from file\n\t%s\n", filePath);
+		LibSVM svm = (LibSVM) SerializationHelper.read(filePath);
+		System.out.println("Loaded SVM classifer.");
 		return svm;
 	}
 
