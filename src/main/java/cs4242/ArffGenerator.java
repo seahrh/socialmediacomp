@@ -68,12 +68,22 @@ public final class ArffGenerator {
 
 		List<String> values = ImmutableList.<String> builder()
 				.add("dummy", "1", "0", "-1").build();
-		ATTRIBUTES.add(new Attribute("classlabel", values));
+		ATTRIBUTES.add(new Attribute("class_label", values)); // Index 0
+
+		ATTRIBUTES.add(new Attribute("positive_strong")); // Index 1
+		ATTRIBUTES.add(new Attribute("positive_weak")); // Index 2
+		ATTRIBUTES.add(new Attribute("negative_strong")); // Index 3
+		ATTRIBUTES.add(new Attribute("negative_weak")); // Index 4
+		ATTRIBUTES.add(new Attribute("neutral_strong")); // Index 5
+		ATTRIBUTES.add(new Attribute("neutral_weak")); // Index 6
+		ATTRIBUTES.add(new Attribute("posneg_strong")); // Index 7
+		ATTRIBUTES.add(new Attribute("posneg_weak")); // Index 8
 
 		// Text attribute is a string
 
 		values = null;
-		ATTRIBUTES.add(new Attribute("text", values));
+		ATTRIBUTES.add(new Attribute("text", values)); // Index 9
+
 	}
 
 	private ArffGenerator() {
@@ -85,9 +95,9 @@ public final class ArffGenerator {
 		long startTime = System.currentTimeMillis();
 		long endTime;
 
-		if (args.length != 3) {
+		if (args.length != 4) {
 			System.out
-					.println("Usage: FeatureExtractor <input> <tagger model> <lexicon>");
+					.println("Usage: FeatureExtractor <input> <POS tagger> <sentiment lexicon> <negation words>");
 			System.exit(1);
 		}
 
@@ -100,11 +110,13 @@ public final class ArffGenerator {
 		String taggerPath = args[1];
 		// String taggedOutFilePath = args[4];
 		String lexiconPath = args[2];
+		String negationPath = args[3];
 
 		String parentDir = inFile.getParent();
 		BufferedReader br = null;
 		String line;
-		String features;
+		List<Feature> features;
+		String featuresString;
 		String sentiment;
 		Optional<String> classValue;
 		List<String> row;
@@ -113,10 +125,11 @@ public final class ArffGenerator {
 		Instance inst;
 		FeatureExtractor fe;
 		List<String> tagged = new ArrayList<String>();
+		int[] sentimentCount;
 
 		try {
 
-			fe = new FeatureExtractor(taggerPath, lexiconPath);
+			fe = new FeatureExtractor(taggerPath, lexiconPath, negationPath);
 
 			br = new BufferedReader(new FileReader(inFile));
 
@@ -124,10 +137,10 @@ public final class ArffGenerator {
 
 			br.readLine();
 
-			System.out.println("Extracting features...");
+			System.out.printf("Extracting features...\n\t%s\n", inFilePath);
 
 			while ((line = br.readLine()) != null) {
-				inst = new DenseInstance(2);
+				inst = new DenseInstance(ATTRIBUTES.size());
 				inst.setDataset(data);
 				row = Splitter.on('\t').trimResults().splitToList(line);
 
@@ -142,11 +155,36 @@ public final class ArffGenerator {
 					continue;
 				}
 
+				// Extract features
+
 				features = fe.extract(row.get(INPUT_FIELDS.indexOf("content")));
 
-				tagged.add(features);
+				// Count sentiment words
 
-				inst.setValue(ATTRIBUTES.get(1), features);
+				sentimentCount = FeatureExtractor.countSentiment(features);
+				inst.setValue(ATTRIBUTES.get(1),
+						sentimentCount[FeatureExtractor.STRONG_POSITIVE_INDEX]);
+				inst.setValue(ATTRIBUTES.get(2),
+						sentimentCount[FeatureExtractor.WEAK_POSITIVE_INDEX]);
+				inst.setValue(ATTRIBUTES.get(3),
+						sentimentCount[FeatureExtractor.STRONG_NEGATIVE_INDEX]);
+				inst.setValue(ATTRIBUTES.get(4),
+						sentimentCount[FeatureExtractor.WEAK_NEGATIVE_INDEX]);
+				inst.setValue(ATTRIBUTES.get(5),
+						sentimentCount[FeatureExtractor.STRONG_NEUTRAL_INDEX]);
+				inst.setValue(ATTRIBUTES.get(6),
+						sentimentCount[FeatureExtractor.WEAK_NEUTRAL_INDEX]);
+				inst.setValue(ATTRIBUTES.get(7),
+						sentimentCount[FeatureExtractor.STRONG_POSNEG_INDEX]);
+				inst.setValue(ATTRIBUTES.get(8),
+						sentimentCount[FeatureExtractor.WEAK_POSNEG_INDEX]);
+
+				// Concat features into string delimited by whitespace
+
+				featuresString = Feature.toString(features);
+				tagged.add(featuresString);
+				inst.setValue(ATTRIBUTES.get(9), featuresString);
+
 				data.add(inst);
 
 				count++;
@@ -157,11 +195,11 @@ public final class ArffGenerator {
 			save(fe.pruned(), FeatureExtractor.PRUNED_POS_FILE);
 			save(tagged, FeatureExtractor.TAGGED_POS_FILE);
 
-			//data = stringToWordVector(data);
+			data = stringToWordVector(data);
 
-			//saveArff(data, outFilePath(parentDir, inFilename));
-			//System.out.printf("Saved %s attributes and %s instances\n",
-					//data.numAttributes(), data.size());
+			saveArff(data, outFilePath(parentDir, inFilename));
+			System.out.printf("Saved %s attributes and %s instances\n",
+					data.numAttributes(), data.size());
 
 			// svm(data, modelFilePath);
 
@@ -192,14 +230,14 @@ public final class ArffGenerator {
 	private static Instances stringToWordVector(Instances in) throws Exception {
 		StringToWordVector filter = new StringToWordVector();
 		// filter.setOptions(options);
-		//filter.setLowerCaseTokens(true);
+		// filter.setLowerCaseTokens(true);
 		filter.setInputFormat(in);
 
 		filter.setTokenizer(tokenizer());
 
 		// TODO should we still use stopwords?
-		//filter.setStopwordsHandler(stopwords(stopwordsFilePath));
-		filter.setAttributeIndices("2");
+		// filter.setStopwordsHandler(stopwords(stopwordsFilePath));
+		filter.setAttributeIndices("last");
 
 		Instances out = Filter.useFilter(in, filter);
 

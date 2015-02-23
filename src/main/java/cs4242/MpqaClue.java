@@ -22,6 +22,8 @@ public class MpqaClue {
 	public static final String NEGATIVE = "negative";
 	public static final String POSITIVE_AND_NEGATIVE = "both";
 	public static final String NEUTRAL = "neutral";
+	
+	protected static final char POS_DELIMITER = '_';
 
 	public static final Set<String> SENTIMENT_POLARITY = Sets.newHashSet(
 			POSITIVE, NEGATIVE, POSITIVE_AND_NEGATIVE, NEUTRAL);
@@ -79,11 +81,11 @@ public class MpqaClue {
 		return result.toString();
 	}
 
-	public static Map<String, Set<MpqaClue>> cluesFromFile(String path)
+	public static Map<String, Set<MpqaClue>> load(String filePath)
 			throws IOException {
 		Map<String, Set<MpqaClue>> lookup = new HashMap<String, Set<MpqaClue>>();
 		Set<MpqaClue> clues;
-		File file = new File(path);
+		File file = new File(filePath);
 		BufferedReader br = null;
 		String line;
 		int count = 0;
@@ -95,6 +97,7 @@ public class MpqaClue {
 		String polarity = null;
 		List<String> tokens;
 		String key;
+		//Set<String> allPos = new HashSet<String>();
 
 		final String TYPE = "type=";
 		final String WORD = "word1=";
@@ -103,6 +106,7 @@ public class MpqaClue {
 		final String POLARITY = "priorpolarity=";
 
 		try {
+			System.out.printf("Loading MPQA clues...\n\t%s\n", filePath);
 			br = new BufferedReader(new FileReader(file));
 			while ((line = br.readLine()) != null) {
 				tokens = Splitter.on(CharMatcher.WHITESPACE).trimResults()
@@ -121,6 +125,7 @@ public class MpqaClue {
 
 					} else if (token.startsWith(POS)) {
 						pos = token.substring(POS.length());
+						//allPos.add(pos);
 
 					} else if (token.startsWith(STEMMED)) {
 						token = token.substring(STEMMED.length());
@@ -153,8 +158,10 @@ public class MpqaClue {
 				count++;
 			}
 
-			System.out.printf("MPQA: Processed %s lines, size of clues lookup table is %s.\n",
+			System.out.printf("MPQA file has %s lines. Loaded %s clues\n",
 					count, lookup.size());
+			
+			//System.out.printf("MPQA part of speech: %s\n", allPos);
 		} finally {
 			if (br != null) {
 				br.close();

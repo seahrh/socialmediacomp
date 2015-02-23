@@ -2,6 +2,9 @@ package cs4242;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -24,10 +27,8 @@ public class FeatureExtractor {
 	protected static final String TAGGED_POS_FILE = "C:\\Feng\\cs4242\\tagged.txt";
 
 	// Retain cardinal numbers such as 'million'
-	// TODO Negation in MD such as 'cannot'
-	// TODO Negation in IN such as 'against'
-	// TODO Negation in DT such as 'neither'
 	// TODO Modifiers in . such as '!!'
+	// TODO Whitelist is safer than blacklist
 
 	private static final Set<String> POS_EXCLUSION_LIST = Sets.newHashSet("RT",
 			"CC", "DT", "EX", "IN", "LS", "PDT", "POS", "PRP", "PRP$", "SYM",
@@ -36,52 +37,186 @@ public class FeatureExtractor {
 	private static final Set<String> PUNCTUATION_POS = Sets.newHashSet("``",
 			"''", "(", ")", ",", "--", ".", ":");
 
+	private static final Set<String> NEGATION_TERMINATORS = Sets.newHashSet(
+			"but", "however");
+
 	// Removed hyphen (-) because don't want to break up words like 'anti-hero'
-	// Removed apostrophe (-) because don't want to break up words like 'don't'
+	// Removed single quote/apostrophe (') because don't want to break up words
+	// like 'don't'
 
 	private static final char[] PUNCTUATION_MARKS = "[](){}:,`.!?\";\\/"
 			.toCharArray();
 
 	private static final String NOISE_CHARACTERS = "*%&=^~|";
+	
+	public static final int STRONG_POSITIVE_INDEX = 0;
+	public static final int WEAK_POSITIVE_INDEX = 1;
+	public static final int STRONG_NEGATIVE_INDEX = 2;
+	public static final int WEAK_NEGATIVE_INDEX = 3;
+	public static final int STRONG_NEUTRAL_INDEX = 4;
+	public static final int WEAK_NEUTRAL_INDEX = 5;
+	public static final int STRONG_POSNEG_INDEX = 6;
+	public static final int WEAK_POSNEG_INDEX = 7;
 
 	private Map<String, Set<MpqaClue>> mpqa;
 	private MaxentTagger tagger;
 	private Set<String> pruned;
+	private Set<String> negationWords;
 
 	private FeatureExtractor() {
 		pruned = new HashSet<String>();
 		mpqa = null;
 		tagger = null;
+		negationWords = null;
 	}
 
-	public FeatureExtractor(String taggerPath, String lexiconPath)
-			throws IOException {
+	public FeatureExtractor(String taggerPath, String lexiconPath,
+			String negationPath) throws IOException {
 		this();
-		System.out.println("Loading sentiment lexicon...");
-		mpqa = MpqaClue.cluesFromFile(lexiconPath);
-		System.out.println("Sentiment lexicon loaded successfully.");
+
+		mpqa = MpqaClue.load(lexiconPath);
 
 		System.out.println("Loading tagger...");
 		tagger = new MaxentTagger(taggerPath);
 		System.out.println("Tagger loaded successfully.");
+
+		negationWords(negationPath);
 	}
 
-	public String extract(String text) {
+	public List<Feature> extract(String text) {
 		return pipeline(text);
 	}
 
-	private String pipeline(String text) {
+	private List<Feature> pipeline(String text) {
 
 		String intermediate = preprocess(text);
 		List<Feature> features = tagPos(intermediate);
+
+		// Before discarding POS, handle negation such as 'cannot' (MD),
+		// 'against' (IN) and 'neither' (DT).
+
+		features = detectNegation(features);
+
 		features = prunePos(features, POS_EXCLUSION_LIST);
 		features = prunePos(features, PUNCTUATION_POS);
 
-		return Feature.toString(features);
+		features = detectSentiment(features);
+
+		return features;
+	}
+	
+	public static int[] countSentiment(List<Feature> features) {
+		int[] count = new int[8];
+		
+		for (Feature f : features) {
+			if (f.stronglySubjective()) {
+				
+				if (f.positiveSentiment()) {
+					count[STRONG_POSITIVE_INDEX]++;
+				} 
+				
+				if (f.negativeSentiment()) {
+					count[STRONG_NEGATIVE_INDEX]++;
+				}
+				
+				if (f.neutralSentiment()) {
+					count[STRONG_NEUTRAL_INDEX]++; 
+				}
+				
+				if (f.positiveAndNegativeSentiment()) {
+					count[STRONG_POSNEG_INDEX]++;
+				}
+				
+			} else {
+				if (f.positiveSentiment()) {
+					count[WEAK_POSITIVE_INDEX]++;
+				} 
+				
+				if (f.negativeSentiment()) {
+					count[WEAK_NEGATIVE_INDEX]++;
+				}
+				
+				if (f.neutralSentiment()) {
+					count[WEAK_NEUTRAL_INDEX]++; 
+				}
+				
+				if (f.positiveAndNegativeSentiment()) {
+					count[WEAK_POSNEG_INDEX]++;
+				}
+			}
+		}
+		
+		return count;
+	}
+
+	private List<Feature> detectSentiment(List<Feature> features) {
+		List<Feature> result = new ArrayList<Feature>();
+		String key;
+		Set<MpqaClue> clues;
+		String polarity;
+
+		for (Feature f : features) {
+
+			key = f.mpqaKey();
+			clues = mpqa.get(key);
+			if (clues != null) {
+				for (MpqaClue clue : clues) {
+					polarity = clue.polarity();
+
+					if (polarity.equals(MpqaClue.POSITIVE)) {
+						f.positiveSentiment(true);
+					} else if (polarity.equals(MpqaClue.NEGATIVE)) {
+						f.negativeSentiment(true);
+					} else if (polarity.equals(MpqaClue.POSITIVE_AND_NEGATIVE)) {
+						f.positiveAndNegativeSentiment(true);
+					} else if (polarity.equals(MpqaClue.NEUTRAL)) {
+						f.neutralSentiment(true);
+					}
+
+					// Mark the feature as strongly subjective
+					// if at least one clue agrees
+
+					if (clue.stronglySubjective()) {
+						f.stronglySubjective(true);
+					}
+
+				}
+			}
+			result.add(f);
+		}
+
+		return result;
 	}
 
 	public List<String> pruned() {
 		return Lists.newArrayList(pruned);
+	}
+
+	private List<Feature> detectNegation(List<Feature> features) {
+		List<Feature> result = new ArrayList<Feature>();
+		boolean negation = false;
+		String term;
+		String pos;
+
+		for (Feature f : features) {
+			term = f.term();
+			pos = f.pos();
+			if (negation) {
+				if (PUNCTUATION_POS.contains(pos)
+						|| NEGATION_TERMINATORS.contains(term)) {
+					negation = false;
+				} else {
+					f.negated(true);
+				}
+			} else {
+				if (negationWords.contains(term)) {
+					negation = true;
+				}
+			}
+			result.add(f);
+		}
+
+		return result;
 	}
 
 	/**
@@ -146,13 +281,13 @@ public class FeatureExtractor {
 		StringBuffer replacement;
 
 		for (String token : tokens) {
-			if (token.startsWith("http") || token.startsWith("#")
-					|| token.startsWith("@")) {
+			if (token.startsWith("http")) {
 				// do nothing
 			} else {
 
-				// TODO remove, this doesn't work
 				// Pad punctuation marks with whitespace, for tokenizing later
+				// However this also makes emoticon detection impossible
+				// TODO preserve emoticons
 
 				for (int i = 0; i < PUNCTUATION_MARKS.length; i++) {
 					replacement = new StringBuffer(" ");
@@ -163,13 +298,41 @@ public class FeatureExtractor {
 
 				}
 
-				// Strip digits
+				// Strip digits if the token is not a user-mention or hashtag
 
-				token = CharMatcher.DIGIT.removeFrom(token);
+				if (token.startsWith("#") || token.startsWith("@")) {
+					// do nothing
+				} else {
+					token = CharMatcher.DIGIT.removeFrom(token);
+				}
 			}
 			result.add(token);
 		}
 
 		return CharMatcher.WHITESPACE.trimFrom(Joiner.on(' ').join(result));
+	}
+
+	private void negationWords(String filePath) throws IOException {
+		negationWords = new HashSet<String>();
+		File file = new File(filePath);
+		BufferedReader br = null;
+		String line;
+
+		try {
+			System.out.printf("Loading negation words...\n\t%s\n", filePath);
+			br = new BufferedReader(new FileReader(file));
+			while ((line = br.readLine()) != null) {
+				line = CharMatcher.WHITESPACE.trimFrom(line).toLowerCase();
+				if (line.startsWith("#")) {
+					continue;
+				}
+				negationWords.add(line);
+			}
+			System.out.printf("Loaded %s negation words\n", negationWords.size());
+		} finally {
+			if (br != null) {
+				br.close();
+			}
+		}
 	}
 }

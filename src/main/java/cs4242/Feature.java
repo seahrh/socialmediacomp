@@ -2,11 +2,26 @@ package cs4242;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 
 public class Feature {
 
+	/**
+	 * These POS don't carry negation semantics
+	 */
+	private static final Set<String> POS_WITH_NO_NEGATION_CONTEXT = Sets.newHashSet("HT", "URL");
+	
+	private static final Set<String> MPQA_ADJECTIVE_POS = Sets.newHashSet("JJ", "JJR", "JJS");
+	
+	private static final Set<String> MPQA_VERB_POS = Sets.newHashSet("VB", "VBD", "VBG", "VBN", "VBP", "VBZ");
+	
+	private static final Set<String> MPQA_NOUN_POS = Sets.newHashSet("NN", "NNP", "NNPS", "NNS");
+	
+	private static final Set<String> MPQA_ADVERB_POS = Sets.newHashSet("RB", "RBR", "RBS");
+	
 	private static final char POS_DELIMITER = '_';
 
 	private String term;
@@ -53,9 +68,21 @@ public class Feature {
 		return result.toString();
 	}
 
-	// TODO generate MPQA key
 	public String mpqaKey() {
-		return "";
+		StringBuffer key = new StringBuffer(term);
+		key.append(MpqaClue.POS_DELIMITER);
+		
+		if (MPQA_ADJECTIVE_POS.contains(pos)) {
+			key.append("adj");
+		} else if (MPQA_VERB_POS.contains(pos)) {
+			key.append("verb");
+		} else if (MPQA_NOUN_POS.contains(pos)) {
+			key.append("noun");
+		} else if (MPQA_ADVERB_POS.contains(pos)) {
+			key.append("adverb");
+		}
+		
+		return key.toString();
 	}
 
 	/*
@@ -157,6 +184,10 @@ public class Feature {
 	 *            the negated to set
 	 */
 	public void negated(boolean negated) {
+		if (negated && POS_WITH_NO_NEGATION_CONTEXT.contains(pos)) {
+			// These POS don't carry negation semantics
+			return;
+		}
 		this.negated = negated;
 	}
 
