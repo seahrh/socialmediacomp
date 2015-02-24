@@ -138,9 +138,9 @@ public class FeatureExtractor {
 				}
 
 			} else {
-				
+
 				// Weakly subjective
-				
+
 				if (f.positiveSentiment()) {
 					count[WEAK_POSITIVE_INDEX]++;
 				}
@@ -161,7 +161,7 @@ public class FeatureExtractor {
 
 		return count;
 	}
-	
+
 	public static String countSentimentToString(int[] count) {
 		StringBuffer sb = new StringBuffer("[ ps:");
 		sb.append(count[STRONG_POSITIVE_INDEX]);
@@ -188,13 +188,28 @@ public class FeatureExtractor {
 		String key;
 		Set<MpqaClue> clues;
 		String polarity;
+		String featurePos;
+		String cluePos;
+		boolean match = false;
 
 		for (Feature f : features) {
 
-			key = f.mpqaKey();
+			key = f.term();
+			featurePos = MpqaClue.mpqaPos(f.pos());
+
 			clues = mpqa.get(key);
 			if (clues != null) {
 				for (MpqaClue clue : clues) {
+
+					cluePos = clue.pos();
+
+					match = cluePos.equals(MpqaClue.ANY_PART_OF_SPEECH)
+							|| featurePos.equals(cluePos);
+
+					if (!match) {
+						continue;
+					}
+
 					polarity = clue.polarity();
 
 					if (polarity.equals(MpqaClue.POSITIVE)) {

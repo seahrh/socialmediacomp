@@ -69,8 +69,8 @@ public final class ArffGenerator {
 		ATTRIBUTES.add(new Attribute("negative_weak")); // Index 4
 		ATTRIBUTES.add(new Attribute("neutral_strong")); // Index 5
 		ATTRIBUTES.add(new Attribute("neutral_weak")); // Index 6
-		//ATTRIBUTES.add(new Attribute("posneg_strong")); // Index 7
-		//ATTRIBUTES.add(new Attribute("posneg_weak")); // Index 8
+		// ATTRIBUTES.add(new Attribute("posneg_strong")); // Index 7
+		// ATTRIBUTES.add(new Attribute("posneg_weak")); // Index 8
 
 		// Text attribute is a string
 
@@ -99,9 +99,9 @@ public final class ArffGenerator {
 		File inFile = new File(inFilePath);
 
 		// String stopwordsFilePath = args[1];
-		
+
 		String taggerPath = args[1];
-		
+
 		String lexiconPath = args[2];
 		String negationPath = args[3];
 		String modelPath = args[4];
@@ -169,10 +169,10 @@ public final class ArffGenerator {
 						sentimentCount[FeatureExtractor.STRONG_NEUTRAL_INDEX]);
 				inst.setValue(ATTRIBUTES.get(6),
 						sentimentCount[FeatureExtractor.WEAK_NEUTRAL_INDEX]);
-				//inst.setValue(ATTRIBUTES.get(7),
-					//	sentimentCount[FeatureExtractor.STRONG_POSNEG_INDEX]);
-				//inst.setValue(ATTRIBUTES.get(8),
-					//	sentimentCount[FeatureExtractor.WEAK_POSNEG_INDEX]);
+				// inst.setValue(ATTRIBUTES.get(7),
+				// sentimentCount[FeatureExtractor.STRONG_POSNEG_INDEX]);
+				// inst.setValue(ATTRIBUTES.get(8),
+				// sentimentCount[FeatureExtractor.WEAK_POSNEG_INDEX]);
 
 				// Concat features into string delimited by whitespace
 
@@ -204,9 +204,13 @@ public final class ArffGenerator {
 			System.out.printf("Saved %s attributes and %s instances\n",
 					data.numAttributes(), data.size());
 
-			//svm(data, modelPath);
+			// svm(data, modelPath);
 
-			//loadModel(modelPath);
+			// loadModel(modelPath);
+
+			endTime = System.currentTimeMillis();
+			System.out.printf("Done! Run time: %ss\n",
+					(endTime - startTime) / 1000);
 
 		} catch (Exception e) {
 
@@ -215,10 +219,6 @@ public final class ArffGenerator {
 			if (br != null) {
 				br.close();
 			}
-
-			endTime = System.currentTimeMillis();
-			System.out.printf("Done! Run time: %ss\n",
-					(endTime - startTime) / 1000);
 		}
 
 	}
@@ -268,8 +268,7 @@ public final class ArffGenerator {
 		svm.buildClassifier(data);
 		System.out.println("Trained SVM classifier");
 		SerializationHelper.write(filePath, svm);
-		System.out.printf("Saved classifier to model file:\n\t%s\n",
-				filePath);
+		System.out.printf("Saved classifier to model file:\n\t%s\n", filePath);
 	}
 
 	private static LibSVM loadModel(String filePath) throws Exception {

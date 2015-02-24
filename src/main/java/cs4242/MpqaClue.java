@@ -14,19 +14,39 @@ import java.util.Set;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
 public class MpqaClue {
 
+	public static final char POS_DELIMITER = '_';
+	
 	public static final String POSITIVE = "positive";
 	public static final String NEGATIVE = "negative";
 	public static final String POSITIVE_AND_NEGATIVE = "both";
 	public static final String NEUTRAL = "neutral";
-	
-	protected static final char POS_DELIMITER = '_';
-
-	public static final Set<String> SENTIMENT_POLARITY = Sets.newHashSet(
+	private static final Set<String> SENTIMENT_POLARITY = Sets.newHashSet(
 			POSITIVE, NEGATIVE, POSITIVE_AND_NEGATIVE, NEUTRAL);
+
+	public static final String ANY_PART_OF_SPEECH = "anypos";
+	private static final String ADJECTIVE = "adj";
+	private static final String NOUN = "noun";
+	private static final String ADVERB = "adverb";
+	private static final String VERB = "verb";
+	private static final Set<String> PARTS_OF_SPEECH = Sets.newHashSet(
+			ANY_PART_OF_SPEECH, ADJECTIVE, NOUN, ADVERB, VERB);
+	
+	private static final Set<String> MPQA_ADJECTIVE_POS = Sets.newHashSet("JJ",
+			"JJR", "JJS");
+
+	private static final Set<String> MPQA_VERB_POS = Sets.newHashSet("VB",
+			"VBD", "VBG", "VBN", "VBP", "VBZ");
+
+	private static final Set<String> MPQA_NOUN_POS = Sets.newHashSet("NN",
+			"NNP", "NNPS", "NNS");
+
+	private static final Set<String> MPQA_ADVERB_POS = Sets.newHashSet("RB",
+			"RBR", "RBS");
 
 	private boolean stronglySubjective;
 	private String word;
@@ -45,11 +65,26 @@ public class MpqaClue {
 	public MpqaClue(String word, String pos, String polarity,
 			boolean stronglySubjective, boolean stemmed) {
 		this();
-		this.word = word;
-		this.pos = pos;
-		checkArgument(SENTIMENT_POLARITY.contains(polarity),
+
+		String val = Strings.nullToEmpty(word);
+		val = CharMatcher.WHITESPACE.trimFrom(val).toLowerCase();
+		checkArgument(!val.isEmpty(), "Word cannot be null or empty string");
+		this.word = val;
+
+		val = Strings.nullToEmpty(pos);
+		val = CharMatcher.WHITESPACE.trimFrom(val).toLowerCase();
+		checkArgument(!val.isEmpty(), "POS cannot be null or empty string");
+		checkArgument(PARTS_OF_SPEECH.contains(val),
+				"Invalid polarity value [%s]", pos);
+		this.pos = val;
+
+		val = Strings.nullToEmpty(polarity);
+		val = CharMatcher.WHITESPACE.trimFrom(val).toLowerCase();
+		checkArgument(!val.isEmpty(), "Polarity cannot be null or empty string");
+		checkArgument(SENTIMENT_POLARITY.contains(val),
 				"Invalid polarity value [%s]", polarity);
-		this.polarity = polarity;
+		this.polarity = val;
+
 		this.stronglySubjective = stronglySubjective;
 		this.stemmed = stemmed;
 	}
@@ -75,10 +110,11 @@ public class MpqaClue {
 	}
 
 	public String key() {
-		StringBuffer result = new StringBuffer(word);
-		result.append("_");
-		result.append(pos);
-		return result.toString();
+		// StringBuffer result = new StringBuffer(word);
+		// result.append("_");
+		// result.append(pos);
+		// return result.toString();
+		return word;
 	}
 
 	public static Map<String, Set<MpqaClue>> load(String filePath)
@@ -97,7 +133,7 @@ public class MpqaClue {
 		String polarity = null;
 		List<String> tokens;
 		String key;
-		//Set<String> allPos = new HashSet<String>();
+		Set<String> allPos = new HashSet<String>();
 
 		final String TYPE = "type=";
 		final String WORD = "word1=";
@@ -125,7 +161,7 @@ public class MpqaClue {
 
 					} else if (token.startsWith(POS)) {
 						pos = token.substring(POS.length());
-						//allPos.add(pos);
+						allPos.add(pos);
 
 					} else if (token.startsWith(STEMMED)) {
 						token = token.substring(STEMMED.length());
@@ -144,30 +180,45 @@ public class MpqaClue {
 				clue = new MpqaClue(word, pos, polarity, stronglySubjective,
 						stemmed);
 				key = clue.key();
-				
+
 				if (lookup.containsKey(key)) {
 					clues = lookup.get(key);
 
 				} else {
 					clues = new HashSet<MpqaClue>();
-					
-					
+
 				}
 				clues.add(clue);
 				lookup.put(key, clues);
 				count++;
 			}
 
-			System.out.printf("MPQA file has %s lines. Loaded %s clues\n",
+			System.out.printf("MPQA file has %s lines. Loaded clues for %s distinct words\n",
 					count, lookup.size());
-			
-			//System.out.printf("MPQA part of speech: %s\n", allPos);
+
+			System.out.printf("MPQA parts of speech: %s\n", allPos);
 		} finally {
 			if (br != null) {
 				br.close();
 			}
 		}
 		return lookup;
+	}
+
+	public static String mpqaPos(String pennPos) {
+		if (MPQA_ADJECTIVE_POS.contains(pennPos)) {
+			return ADJECTIVE;
+		}
+		if (MPQA_VERB_POS.contains(pennPos)) {
+			return VERB;
+		}
+		if (MPQA_NOUN_POS.contains(pennPos)) {
+			return NOUN;
+		}
+		if (MPQA_ADVERB_POS.contains(pennPos)) {
+			return ADVERB;
+		}
+		return "";
 	}
 
 	/*
