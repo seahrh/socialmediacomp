@@ -28,6 +28,7 @@ import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
@@ -82,13 +83,13 @@ public final class ArffGenerator {
 		ATTRIBUTES.add(new Attribute("negative_weak")); // Index 5
 		ATTRIBUTES.add(new Attribute("neutral_strong")); // Index 6
 		ATTRIBUTES.add(new Attribute("neutral_weak")); // Index 7
-		// ATTRIBUTES.add(new Attribute("posneg_strong")); 
-		// ATTRIBUTES.add(new Attribute("posneg_weak")); 
+		// ATTRIBUTES.add(new Attribute("posneg_strong"));
+		// ATTRIBUTES.add(new Attribute("posneg_weak"));
 
 		values = ImmutableList.<String> builder().add("dummy", "train", "dev")
 				.build();
 		ATTRIBUTES.add(new Attribute("dataset", values)); // Index 8
-		
+
 		// Text attribute is a string
 
 		values = null;
@@ -105,40 +106,34 @@ public final class ArffGenerator {
 		long startTime = System.currentTimeMillis();
 		long endTime;
 
-		if (args.length != 6) {
+		if (args.length != 7) {
 			System.out
-					.println("Usage: FeatureExtractor <train set> <dev set> <POS tagger> <sentiment lexicon> <negation words> <model output>");
+					.println("Usage: FeatureExtractor <train set> <dev set> <test set> <POS tagger> <sentiment lexicon> <negation words> <model output>");
 			System.exit(1);
 		}
 
 		String trainPath = args[0];
 		String devPath = args[1];
-		String taggerPath = args[2];
-		String lexiconPath = args[3];
-		String negationPath = args[4];
-		String modelPath = args[5];
-		String parentDir;
+		String testPath = args[2];
+		String taggerPath = args[3];
+		String lexiconPath = args[4];
+		String negationPath = args[5];
+		String modelPath = args[6];
+
 		FeatureExtractor fe;
-		Instances trainHeader;
-		Instances trainData;
-		Instances devData;
+
+		Instances header;
+		Instances testData;
 
 		try {
 
 			fe = new FeatureExtractor(taggerPath, lexiconPath, negationPath);
 
-			trainHeader = load(trainPath, "train", fe);
-			trainHeader.addAll(load(devPath, "dev", fe));
+			header = trainData(trainPath, devPath, fe);
+
+			testData = testData(testPath, header, fe);
+
 			save(fe.pruned(), FeatureExtractor.PRUNED_POS_FILE);
-
-			trainHeader = stringToWordVector(trainHeader);
-
-			trainData = dataset("train", trainHeader);
-			devData = dataset("dev", trainHeader);
-
-			parentDir = new File(trainPath).getParent();
-			saveArff(trainData, outFilePath(parentDir, "train", "arff"));
-			saveArff(devData, outFilePath(parentDir, "dev", "arff"));
 
 			// svm(data, modelPath);
 
@@ -151,6 +146,82 @@ public final class ArffGenerator {
 		endTime = System.currentTimeMillis();
 		System.out
 				.printf("Done! Run time: %ss\n", (endTime - startTime) / 1000);
+	}
+
+	private static Instances testData(String testPath, Instances header,
+			FeatureExtractor fe) throws Exception {
+		Instances out = load(testPath, fe);
+		out = stringToWordVector(out);
+		out = setHeader(out, header);
+		String parentDir = new File(testPath).getParent();
+		saveArff(out, outFilePath(parentDir, "test", "arff"));
+		return out;
+	}
+
+	private static Instances trainData(String trainPath, String devPath,
+			FeatureExtractor fe) throws Exception {
+		Instances trainData;
+		Instances devData;
+		Instances trainHeader;
+
+		trainHeader = load(trainPath, "train", fe);
+		trainHeader.addAll(load(devPath, "dev", fe));
+
+		trainHeader = stringToWordVector(trainHeader);
+		trainData = dataset("train", trainHeader);
+		devData = dataset("dev", trainHeader);
+
+		trainHeader = removeDatasetName(trainHeader);
+		trainData = removeDatasetName(trainData);
+		devData = removeDatasetName(devData);
+
+		String parentDir = new File(trainPath).getParent();
+		saveArff(trainData, outFilePath(parentDir, "train", "arff"));
+		saveArff(devData, outFilePath(parentDir, "dev", "arff"));
+
+		return trainHeader;
+	}
+
+	private static Instances setHeader(Instances in, Instances header) {
+		checkNotNull(header, "Instances header cannot be null");
+
+		Instances out = new Instances(header, in.numInstances());
+
+		List<Attribute> commonAttrs = new ArrayList<Attribute>();
+
+		Attribute attr;
+		SparseInstance inst;
+
+		for (int i = 0; i < in.numAttributes(); i++) {
+			attr = in.attribute(i);
+			if (header.attribute(attr.name()) != null) {
+				// Attribute exists in both header and input data
+
+				commonAttrs.add(attr);
+			}
+		}
+
+		System.out
+				.printf("Train header has %s attributes, out of which %s are common with test dataset\n",
+						header.numAttributes(), commonAttrs.size());
+
+		for (Instance input : in) {
+
+			inst = new SparseInstance(1d, new double[header.numAttributes()]);
+			inst.setDataset(header);
+			for (Attribute ca : commonAttrs) {
+				if (input.isMissing(ca)) {
+					inst.setMissing(ca);
+				} else {
+					inst.setValue(ca, input.value(ca));
+				}
+
+			}
+
+			out.add(inst);
+		}
+
+		return out;
 	}
 
 	private static Instances dataset(String name, Instances header) {
@@ -167,17 +238,27 @@ public final class ArffGenerator {
 				dataset.add(i);
 			}
 		}
-		
-		// Remove the 'dataset name' attribute, not required for training
-		
-		dataset.deleteAttributeAt(datasetName.index());
-		
+
 		return dataset;
+	}
+
+	private static Instances removeDatasetName(Instances in) {
+		Attribute datasetName = in.attribute("dataset");
+		// Remove the 'dataset name' attribute, not required for
+		// training/testing
+
+		in.deleteAttributeAt(datasetName.index());
+		return in;
+	}
+
+	private static Instances load(String filePath, FeatureExtractor fe)
+			throws IOException {
+		return load(filePath, null, fe);
 	}
 
 	private static Instances load(String filePath, String datasetName,
 			FeatureExtractor fe) throws IOException {
-
+		datasetName = Strings.nullToEmpty(datasetName);
 		File file = new File(filePath);
 		String filename = Files.getNameWithoutExtension(filePath);
 		String parentDir = file.getParent();
@@ -190,7 +271,8 @@ public final class ArffGenerator {
 		List<Feature> features;
 		String featuresString;
 		String sentiment;
-		String aspect;
+		Attribute aspect;
+		String aspectStr;
 		Optional<String> classValue;
 		List<String> row;
 		int count = 0;
@@ -225,10 +307,22 @@ public final class ArffGenerator {
 				}
 
 				// Target (aspect) is the alternative class variable
+				// Test set may have more aspects than train and dev sets
+				// Ignore new aspects, set value as missing
 
-				aspect = row.get(INPUT_FIELDS.indexOf("target"));
-				aspects.add(aspect);
-				inst.setValue(ATTRIBUTES.get(1), aspect);
+				aspect = ATTRIBUTES.get(1);
+				aspectStr = row.get(INPUT_FIELDS.indexOf("target"));
+				if (aspectStr.isEmpty()) {
+					inst.setMissing(aspect);
+				} else {
+					aspects.add(aspectStr);
+
+					if (aspect.indexOfValue(aspectStr) == -1) {
+						inst.setMissing(aspect);
+					} else {
+						inst.setValue(aspect, aspectStr);
+					}
+				}
 
 				// Extract features
 
@@ -262,15 +356,19 @@ public final class ArffGenerator {
 
 				// Set the dataset name
 
-				inst.setValue(ATTRIBUTES.get(ATTRIBUTES.size() - 2),
-						datasetName);
+				if (datasetName.isEmpty()) {
+					inst.setMissing(ATTRIBUTES.get(ATTRIBUTES.size() - 2));
+				} else {
+					inst.setValue(ATTRIBUTES.get(ATTRIBUTES.size() - 2),
+							datasetName);
+				}
 
 				// Debug output
 
 				sb = new StringBuffer("[senti:");
 				sb.append(classValue.get());
 				sb.append(" aspect:");
-				sb.append(aspect);
+				sb.append(aspectStr);
 				sb.append(" ");
 				sb.append(FeatureExtractor
 						.countSentimentToString(sentimentCount));
