@@ -40,14 +40,24 @@ public class FeatureExtractor {
 	private static final Set<String> NEGATION_TERMINATORS = Sets.newHashSet(
 			"but", "however");
 
-	// Removed hyphen (-) because don't want to break up words like 'anti-hero'
-	// Removed single quote/apostrophe (') because don't want to break up words
+	// Mark punctuation marks in preprocessing.
+	// Punctuation marks exclude the following:
+	// Hyphen (-) because don't want to break up words like 'anti-hero'
+	// Single quote/apostrophe (') because don't want to break up words
 	// like 'don't'
 
-	private static final char[] PUNCTUATION_MARKS = "[](){}:,`.!?\";\\/"
+	private static final char[] PUNCTUATION_TO_DETECT = "[](){}:,`.!?\";\\/"
 			.toCharArray();
 
-	private static final String NOISE_CHARACTERS = "*%&=^~|";
+	private static final String PUNCTUATION_MARKS = new String(
+			PUNCTUATION_TO_DETECT) + "-'";
+
+	// TODO Symbols like less-than (<), greater-than (>) may be useful...
+
+	private static final String NOISE_CHARACTERS = "><*%&=^~|";
+
+	private static final Set<String> TRAILING_NOISE = Sets.newHashSet("\\n",
+			"'s", "s'");
 
 	public static final int STRONG_POSITIVE_INDEX = 0;
 	public static final int WEAK_POSITIVE_INDEX = 1;
@@ -90,15 +100,26 @@ public class FeatureExtractor {
 	private List<Feature> pipeline(String text) {
 
 		String intermediate = preprocess(text);
+
 		List<Feature> features = tagPos(intermediate);
 
-		// Before discarding POS, handle negation such as 'cannot' (MD),
-		// 'against' (IN) and 'neither' (DT).
+		// Detect negation with full context of POS and punctuation
 
 		features = detectNegation(features);
 
+		// Discard unwanted POS, punctuation and characters
+
 		features = prunePos(features, POS_EXCLUSION_LIST);
+
 		features = prunePos(features, PUNCTUATION_POS);
+
+		features = Feature.trimTerms(features, PUNCTUATION_MARKS);
+
+		features = Feature.trimTermsTrailing(features, TRAILING_NOISE);
+
+		// Detect sentiment with MPQA clue lookup by word
+		// Hence terms must be clean (free of punctuation)
+		// before this step.
 
 		features = detectSentiment(features);
 
@@ -163,7 +184,7 @@ public class FeatureExtractor {
 	}
 
 	public static String countSentimentToString(int[] count) {
-		StringBuffer sb = new StringBuffer("[ ps:");
+		StringBuffer sb = new StringBuffer("ps:");
 		sb.append(count[STRONG_POSITIVE_INDEX]);
 		sb.append(" pw:");
 		sb.append(count[WEAK_POSITIVE_INDEX]);
@@ -175,11 +196,11 @@ public class FeatureExtractor {
 		sb.append(count[STRONG_NEUTRAL_INDEX]);
 		sb.append(" uw:");
 		sb.append(count[WEAK_NEUTRAL_INDEX]);
-		//sb.append(" bs:");
-		//sb.append(count[STRONG_POSNEG_INDEX]);
-		//sb.append(" bw:");
-		//sb.append(count[WEAK_POSNEG_INDEX]);
-		sb.append(" ] ");
+		// sb.append(" bs:");
+		// sb.append(count[STRONG_POSNEG_INDEX]);
+		// sb.append(" bw:");
+		// sb.append(count[WEAK_POSNEG_INDEX]);
+		// sb.append(" ] ");
 		return sb.toString();
 	}
 
@@ -223,7 +244,7 @@ public class FeatureExtractor {
 					}
 
 					// Mark the feature as strongly subjective
-					// if at least one clue agrees
+					// if at least one matching clue agrees
 
 					if (clue.stronglySubjective()) {
 						f.stronglySubjective(true);
@@ -241,6 +262,12 @@ public class FeatureExtractor {
 		return Lists.newArrayList(pruned);
 	}
 
+	/**
+	 * Detect negation such as 'cannot' (MD), 'against' (IN) and 'neither' (DT).
+	 * 
+	 * @param features
+	 * @return
+	 */
 	private List<Feature> detectNegation(List<Feature> features) {
 		List<Feature> result = new ArrayList<Feature>();
 		boolean negation = false;
@@ -338,12 +365,12 @@ public class FeatureExtractor {
 				// However this also makes emoticon detection impossible
 				// TODO preserve emoticons
 
-				for (int i = 0; i < PUNCTUATION_MARKS.length; i++) {
+				for (int i = 0; i < PUNCTUATION_TO_DETECT.length; i++) {
 					replacement = new StringBuffer(" ");
-					replacement.append(PUNCTUATION_MARKS[i]);
+					replacement.append(PUNCTUATION_TO_DETECT[i]);
 					replacement.append(" ");
-					token = CharMatcher.is(PUNCTUATION_MARKS[i]).replaceFrom(
-							token, replacement);
+					token = CharMatcher.is(PUNCTUATION_TO_DETECT[i])
+							.replaceFrom(token, replacement);
 
 				}
 

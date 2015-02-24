@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 
@@ -12,10 +13,9 @@ public class Feature {
 	/**
 	 * These POS don't carry negation semantics
 	 */
-	private static final Set<String> POS_WITH_NO_NEGATION_CONTEXT = Sets.newHashSet("HT", "URL");
-	
-	
-	
+	private static final Set<String> POS_WITH_NO_NEGATION_CONTEXT = Sets
+			.newHashSet("HT", "URL");
+
 	private static final char POS_DELIMITER = '_';
 
 	private String term;
@@ -38,7 +38,7 @@ public class Feature {
 		neutralSentiment = false;
 		stronglySubjective = false;
 	}
-	
+
 	public Feature(String term, String pos) {
 		this(term, pos, false);
 	}
@@ -258,13 +258,50 @@ public class Feature {
 	public void stronglySubjective(boolean stronglySubjective) {
 		this.stronglySubjective = stronglySubjective;
 	}
-	
+
 	public static String toString(List<Feature> features) {
 		List<String> result = new ArrayList<String>();
 		for (Feature f : features) {
 			result.add(f.toString());
 		}
 		return Joiner.on(' ').join(result);
+	}
+
+	public static List<Feature> trimTermsTrailing(List<Feature> features,
+			Set<String> substrings) {
+		List<Feature> result = new ArrayList<Feature>(features.size());
+		String term;
+
+		for (Feature f : features) {
+			term = f.term();
+			for (String sub : substrings) {
+
+				if (term.endsWith(sub)) {
+
+					term = term.substring(0, term.lastIndexOf(sub));
+
+				}
+			}
+			if (!term.isEmpty()) {
+				f.term(term);
+				result.add(f);
+			}
+		}
+		return result;
+	}
+
+	public static List<Feature> trimTerms(List<Feature> features, String chars) {
+		List<Feature> result = new ArrayList<Feature>(features.size());
+		String term;
+
+		for (Feature f : features) {
+			term = CharMatcher.anyOf(chars).trimFrom(f.term());
+			if (!term.isEmpty()) {
+				f.term(term);
+				result.add(f);
+			}
+		}
+		return result;
 	}
 
 }
