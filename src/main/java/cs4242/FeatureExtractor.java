@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import edu.stanford.nlp.process.Morphology;
 
 public class FeatureExtractor {
 
@@ -70,6 +71,7 @@ public class FeatureExtractor {
 
 	private Map<String, Set<MpqaClue>> mpqa;
 	private MaxentTagger tagger;
+	private Morphology lemmatizer;
 	private Set<String> pruned;
 	private Set<String> negationWords;
 
@@ -77,6 +79,7 @@ public class FeatureExtractor {
 		pruned = new HashSet<String>();
 		mpqa = null;
 		tagger = null;
+		lemmatizer = new Morphology();
 		negationWords = null;
 	}
 
@@ -334,6 +337,8 @@ public class FeatureExtractor {
 					"Missing POS tag for token [%s]", token);
 			term = token.substring(0, delimIndex);
 			pos = token.substring(delimIndex + 1);
+			//term = lemmatizer.lemma(term, pos);
+			term = lemmatizer.stem(term);
 			features.add(new Feature(term, pos));
 		}
 
