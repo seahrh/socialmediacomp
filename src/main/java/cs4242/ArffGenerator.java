@@ -122,22 +122,22 @@ public final class ArffGenerator {
 
 		FeatureExtractor fe;
 
-		Instances header;
+		Instances trainData;
 		Instances testData;
 
 		try {
 
 			fe = new FeatureExtractor(taggerPath, lexiconPath, negationPath);
 
-			header = trainData(trainPath, devPath, fe);
+			trainData = trainData(trainPath, devPath, fe);
 
-			testData = testData(testPath, header, fe);
+			testData = testData(testPath, trainData, fe);
 
 			save(fe.pruned(), FeatureExtractor.PRUNED_POS_FILE);
 
-			// svm(data, modelPath);
+			svm(trainData, modelPath);
 
-			// loadModel(modelPath);
+			loadModel(modelPath);
 
 		} catch (Exception e) {
 
@@ -152,7 +152,7 @@ public final class ArffGenerator {
 			FeatureExtractor fe) throws Exception {
 		Instances out = load(testPath, fe);
 		out = stringToWordVector(out);
-		out = setHeader(out, header);
+		out = setHeader(out, header, testPath);
 		String parentDir = new File(testPath).getParent();
 		saveArff(out, outFilePath(parentDir, "test", "arff"));
 		return out;
@@ -182,12 +182,14 @@ public final class ArffGenerator {
 		return trainHeader;
 	}
 
-	private static Instances setHeader(Instances in, Instances header) {
+	private static Instances setHeader(Instances in, Instances header,
+			String filePath) throws IOException {
 		checkNotNull(header, "Instances header cannot be null");
 
 		Instances out = new Instances(header, in.numInstances());
 
 		List<Attribute> commonAttrs = new ArrayList<Attribute>();
+		List<String> commonAttrsDebug = new ArrayList<String>();
 
 		Attribute attr;
 		SparseInstance inst;
@@ -198,12 +200,16 @@ public final class ArffGenerator {
 				// Attribute exists in both header and input data
 
 				commonAttrs.add(attr);
+				commonAttrsDebug.add(attr.name());
 			}
 		}
 
 		System.out
 				.printf("Train header has %s attributes, out of which %s are common with test dataset\n",
 						header.numAttributes(), commonAttrs.size());
+
+		String parentDir = new File(filePath).getParent();
+		save(commonAttrsDebug, outFilePath(parentDir, "common_attr", "txt"));
 
 		for (Instance input : in) {
 
