@@ -67,3 +67,8 @@ $RECYCLE.BIN/
 eclipse-launch-profiles/
 target/
 src/main/webapp/WEB-INF/models/
+src/main/webapp/vendor/
+*.model
+src/main/webapp/WEB-INF/negation.txt
+*.arff
+src/main/webapp/WEB-INF/subjclueslen1-HLTEMNLP05.tff

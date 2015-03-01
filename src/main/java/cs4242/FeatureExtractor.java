@@ -6,10 +6,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import com.google.common.base.CharMatcher;
@@ -20,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import edu.stanford.nlp.tagger.maxent.TaggerConfig;
 import edu.stanford.nlp.process.Morphology;
 
 public class FeatureExtractor {
@@ -85,17 +88,31 @@ public class FeatureExtractor {
 
 	public FeatureExtractor(String taggerPath, String lexiconPath,
 			String negationPath) throws IOException {
+		this(taggerPath, lexiconPath, negationPath, 1);
+	}
+	
+	public FeatureExtractor(String taggerPath, String lexiconPath,
+			String negationPath, int threads) throws IOException {
 		this();
 
 		mpqa = MpqaClue.load(lexiconPath);
 
 		System.out.println("Loading POS tagger...");
-		tagger = new MaxentTagger(taggerPath);
-		System.out.println("Tagger loaded successfully.");
+		
+		Properties config = new Properties();
+			config.setProperty("nthreads", String.valueOf(threads));
+				
+		
+		//TaggerConfig config = new TaggerConfig();
+		//config.put(TaggerConfig.NTHREADS, threads);
+		//config.put("model", taggerPath);
+		tagger = new MaxentTagger(taggerPath, config);
+		
+		System.out.printf("Tagger loaded successfully");
 
 		negationWords(negationPath);
 	}
-
+	
 	public List<Feature> extract(String text) {
 		return pipeline(text);
 	}

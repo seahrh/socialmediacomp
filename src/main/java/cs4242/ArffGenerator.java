@@ -135,9 +135,9 @@ public final class ArffGenerator {
 
 			save(fe.pruned(), FeatureExtractor.PRUNED_POS_FILE);
 
-			//svm(trainData, modelPath);
+			// svm(trainData, modelPath);
 
-			//loadModel(modelPath);
+			// loadModel(modelPath);
 
 		} catch (Exception e) {
 

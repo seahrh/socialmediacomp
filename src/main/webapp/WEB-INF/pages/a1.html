@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+        <!-- Load Webcomponents.js if browser does not support natively -->
+        <!-- Script must be placed before Polymer HTML imports -->
+        <script src="../../js/wcloader.js"></script>
+        <link href="../../vendor/bower_components/paper-input/paper-input.html" rel="import">
+        <link href="../../vendor/bower_components/paper-input/paper-input-decorator.html" rel="import">
+        <link href="../../vendor/bower_components/paper-input/paper-char-counter.html" rel="import">
+    </head>
+    <body unresolved>
+        <div horizontal layout>
+            <div flex></div>
+            <div flex ten>
+                <h1>CS4242 Assignment 1</h1>
+                <p>
+                    Classify sentiment and aspect of new tweet.
+                </p>
+                <div horizontal layout>
+                    <paper-input-decorator flex label="Enter New Tweet">
+                        <input id="test-input" is="core-input" maxlength="140">
+                        <paper-char-counter class="counter" target="test-input"></paper-char-counter>
+                    </paper-input-decorator>
+                </div>
+                <div id="output" class="well" style="font-family: monospace;
+                white-space: pre; font-size: .8em;">
+                    === OUTPUT ===
+                </div>
+                <hr>
+                <p>
+                    Done by Group 3: Li Xiang, Yang Huiyu, Seah Ru Hong
+                </p>
+            </div>
+            <div flex></div>
+        </div>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function() {
+
+                var $out;
+                $out = $("#output");
+                classify($out);
+
+            });
+
+            function classify($out) {
+                var $inputBox;
+                $inputBox = $("#test-input");
+
+                $inputBox.on("keypress", function(event) {
+                    var input, output;
+                    if (event.which === 13) {
+                        input = $inputBox.val();
+                        output = "Classify sentiment and aspect:\n\"" + input + "\"\n";
+
+                        $.getJSON("/a1", {
+                            "t" : input
+                        }).done(function(data) {
+
+                            output += "Request done\n";
+
+                            if (data) {
+                                
+                                output += JSON.stringify(data, null, "\t");
+                                output += "\n";
+                            } else {
+
+                                output += "No result\n";
+
+                            }
+
+                        }).fail(function() {
+                            output += "Request failed\n";
+
+                        }).always(function() {
+
+                            output += "Request completed\n";
+                            $out.text(output);
+                        });
+                    }
+                });
+            }
+            
+        </script>
+    </body>
+</html>
