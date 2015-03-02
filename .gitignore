@@ -72,3 +72,4 @@ src/main/webapp/vendor/
 src/main/webapp/WEB-INF/negation.txt
 *.arff
 src/main/webapp/WEB-INF/subjclueslen1-HLTEMNLP05.tff
+*.zip

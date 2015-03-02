@@ -1,12 +1,12 @@
 package cs4242;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -21,9 +21,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import edu.stanford.nlp.tagger.maxent.MaxentTagger;
-import edu.stanford.nlp.tagger.maxent.TaggerConfig;
 import edu.stanford.nlp.process.Morphology;
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 
 public class FeatureExtractor {
 
@@ -90,7 +89,7 @@ public class FeatureExtractor {
 			String negationPath) throws IOException {
 		this(taggerPath, lexiconPath, negationPath, 1);
 	}
-	
+
 	public FeatureExtractor(String taggerPath, String lexiconPath,
 			String negationPath, int threads) throws IOException {
 		this();
@@ -98,21 +97,32 @@ public class FeatureExtractor {
 		mpqa = MpqaClue.load(lexiconPath);
 
 		System.out.println("Loading POS tagger...");
-		
+
 		Properties config = new Properties();
-			config.setProperty("nthreads", String.valueOf(threads));
-				
-		
-		//TaggerConfig config = new TaggerConfig();
-		//config.put(TaggerConfig.NTHREADS, threads);
-		//config.put("model", taggerPath);
+		config.setProperty("nthreads", String.valueOf(threads));
+
 		tagger = new MaxentTagger(taggerPath, config);
-		
-		System.out.printf("Tagger loaded successfully");
+
+		System.out.println("Tagger loaded successfully");
 
 		negationWords(negationPath);
 	}
-	
+
+	public FeatureExtractor(String taggerPath, String taggerName, String lexiconPath,
+			String negationPath) throws IOException {
+		this();
+		mpqa = MpqaClue.load(lexiconPath);
+		negationWords(negationPath);
+		System.out.println("Loading POS tagger...");
+
+		Properties config = new Properties();
+		config.setProperty("nthreads", "1");
+
+		this.tagger = new MyMaxentTagger(taggerPath, taggerName, config);
+
+		System.out.println("Tagger loaded successfully");
+	}
+
 	public List<Feature> extract(String text) {
 		return pipeline(text);
 	}
@@ -354,7 +364,7 @@ public class FeatureExtractor {
 					"Missing POS tag for token [%s]", token);
 			term = token.substring(0, delimIndex);
 			pos = token.substring(delimIndex + 1);
-			//term = lemmatizer.lemma(term, pos);
+			// term = lemmatizer.lemma(term, pos);
 			term = lemmatizer.stem(term);
 			features.add(new Feature(term, pos));
 		}
