@@ -61,6 +61,6 @@ public class PredictionResult {
 				return "obama";
 			}
 		}
-		return "";
+		return "unknown label";
 	}
 }

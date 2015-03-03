@@ -1,5 +1,6 @@
 package cs4242.web;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
@@ -102,8 +103,8 @@ public class AOneServlet extends HttpServlet {
 
 			try {
 
-				result = classifySentiment(testData, sentimentClassifiers);
-				result.addAll(classifyAspect(testData, aspectClassifiers));
+				result = classify(testData, sentimentClassifiers, "sentiment");
+				result.addAll(classify(testData, aspectClassifiers, "aspect"));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -238,41 +239,34 @@ public class AOneServlet extends HttpServlet {
 		return out;
 	}
 
-	private List<PredictionResult> classifySentiment(Instances testData,
-			Map<String, Classifier> classifiers) throws Exception {
+	private List<PredictionResult> classify(Instances testData,
+			Map<String, Classifier> classifiers, String target)
+			throws Exception {
 		String name;
 		Classifier cls;
 		List<PredictionResult> result = new ArrayList<PredictionResult>(
 				classifiers.size());
 		double label;
-		testData.setClassIndex(0);
+		target = Strings.nullToEmpty(target);
+
+		if (target.equals("sentiment")) {
+			testData.setClassIndex(0);
+		} else if (target.equals("aspect")) {
+			testData.setClassIndex(1);
+		} else {
+			log.error("Class attribute of the type [{}] is unknown", target);
+			// Force exception by setting class attribute to be undefined
+			testData.setClassIndex(-1);
+		}
 
 		for (Map.Entry<String, Classifier> entry : classifiers.entrySet()) {
 			name = entry.getKey();
-			log.info("This classifier: {}", name);
+
 			cls = entry.getValue();
 			label = cls.classifyInstance(testData.firstInstance());
-			result.add(new PredictionResult(name, "sentiment", label));
+			result.add(new PredictionResult(name, target, label));
 		}
 		return result;
 	}
 
-	private List<PredictionResult> classifyAspect(Instances testData,
-			Map<String, Classifier> classifiers) throws Exception {
-		String name;
-		Classifier cls;
-		List<PredictionResult> result = new ArrayList<PredictionResult>(
-				classifiers.size());
-		double label;
-		testData.setClassIndex(1);
-
-		for (Map.Entry<String, Classifier> entry : classifiers.entrySet()) {
-			name = entry.getKey();
-			log.info("This classifier: {}", name);
-			cls = entry.getValue();
-			label = cls.classifyInstance(testData.firstInstance());
-			result.add(new PredictionResult(name, "aspect", label));
-		}
-		return result;
-	}
 }
