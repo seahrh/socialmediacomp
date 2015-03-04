@@ -1,4 +1,4 @@
-package cs4242.web;
+package cs4242.a1;
 
 public class PredictionResult {
 	

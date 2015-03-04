@@ -1,9 +1,8 @@
-package cs4242;
+package cs4242.a1;
 
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;

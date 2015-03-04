@@ -1,4 +1,4 @@
-package cs4242;
+package cs4242.a1;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package cs4242;
+package cs4242.a1;
 
 import static com.google.common.base.Preconditions.*;
 

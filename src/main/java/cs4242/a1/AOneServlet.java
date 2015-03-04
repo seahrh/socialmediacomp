@@ -1,9 +1,7 @@
-package cs4242.web;
+package cs4242.a1;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,9 +30,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 
-import cs4242.ArffGenerator;
-import cs4242.Feature;
-import cs4242.FeatureExtractor;
 
 public class AOneServlet extends HttpServlet {
 

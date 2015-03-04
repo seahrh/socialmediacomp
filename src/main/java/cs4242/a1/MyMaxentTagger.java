@@ -1,4 +1,4 @@
-package cs4242;
+package cs4242.a1;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -10,8 +10,6 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import com.google.common.base.Optional;
 
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 

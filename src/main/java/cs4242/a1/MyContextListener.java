@@ -1,6 +1,5 @@
-package cs4242.web;
+package cs4242.a1;
 
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -22,8 +21,6 @@ import weka.core.SerializationHelper;
 import weka.core.converters.ArffLoader;
 
 import com.google.common.base.Optional;
-
-import cs4242.FeatureExtractor;
 
 public class MyContextListener implements ServletContextListener {
 
