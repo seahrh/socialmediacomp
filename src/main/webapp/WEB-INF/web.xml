@@ -2,7 +2,7 @@
 <web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
 <servlet>
 		<servlet-name>AOneServlet</servlet-name>
-		<servlet-class>cs4242.web.AOneServlet</servlet-class>
+		<servlet-class>cs4242.a1.AOneServlet</servlet-class>
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>AOneServlet</servlet-name>
@@ -10,7 +10,7 @@
 		<url-pattern>/a1/*</url-pattern>
 	</servlet-mapping>
 	<listener>
-		<listener-class>cs4242.web.MyContextListener</listener-class>
+		<listener-class>cs4242.a1.MyContextListener</listener-class>
 	</listener>
 	<welcome-file-list>
 		<welcome-file>a1</welcome-file>
