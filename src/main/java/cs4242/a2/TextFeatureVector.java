@@ -1,5 +1,6 @@
 package cs4242.a2;
 
+import static cs4242.a2.StringUtil.*;
 public class TextFeatureVector {
 
 	private String userId;
@@ -14,12 +15,11 @@ public class TextFeatureVector {
 	
 	public TextFeatureVector(String userId) {
 		this();
-		this.userId = FeatureExtractor.normalize(userId);
+		this.userId = lowerTrim(userId);
 	}
 	
 	public TextFeatureVector(String userId, String gender, String age) {
-		this();
-		this.userId = FeatureExtractor.normalize(userId);
+		this(userId);
 		gender(gender);
 		age(age);
 	}
@@ -42,7 +42,7 @@ public class TextFeatureVector {
 	 * @param gender the gender to set
 	 */
 	public TextFeatureVector gender(String gender) {
-		this.gender = FeatureExtractor.normalize(gender);
+		this.gender = lowerTrim(gender);
 		return this;
 	}
 
@@ -57,7 +57,7 @@ public class TextFeatureVector {
 	 * @param age the age to set
 	 */
 	public TextFeatureVector age(String age) {
-		this.age = FeatureExtractor.normalize(age);
+		this.age = lowerTrim(age);
 		return this;
 	}
 	
