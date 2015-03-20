@@ -14,12 +14,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import weka.core.Attribute;
+import weka.core.Instances;
+import weka.core.converters.ArffSaver;
+
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 
 public final class FeatureExtractor {
+	
+	private static List<String> userIds;
+	private static Map<String, TextFeatureVector> trainData;
+	private static Map<String, List<Tweet>> tweetsData;
 
 	private FeatureExtractor() {
 		// Private constructor, not meant to be instantiated
@@ -27,7 +35,7 @@ public final class FeatureExtractor {
 
 	public static void main(String[] args) throws IOException {
 
-		if (args.length != 3) {
+		if (args.length != 5) {
 			System.out
 					.println("Usage: FeatureExtractor <train.csv> <tweets.json>");
 			System.exit(1);
@@ -35,18 +43,64 @@ public final class FeatureExtractor {
 		String trainPath = args[0];
 		String tweetsPath = args[1];
 		String tweetsOutDir = args[2];
+		String printTweetsFlag = args[3];
+		String trainOutDir = args[4];
 
 		long startTime = System.currentTimeMillis();
 
-		Map<String, TextFeatureVector> trainData = trainData(trainPath);
+		trainData = trainData(trainPath);
 
-		Map<String, List<Tweet>> tweetsData = tweetsData(tweetsPath);
+		tweetsData = tweetsData(tweetsPath);
+
+		if (printTweetsFlag.equals("printTweets:true")) {
+			printTweets(tweetsData, tweetsOutDir);
+		}
 		
-		
-		printTweets(tweetsData, tweetsOutDir);
+		saveTrainSet(trainOutDir);
 
 		long elapsedTime = System.currentTimeMillis() - startTime;
 		System.out.printf("Done! Run time: %ss\n", elapsedTime / 1000);
+
+	}
+	
+	public static void saveTrainSet(String outDir) throws IOException {
+		
+		StringBuilder sb = new StringBuilder(outDir);
+		sb.append(File.separator);
+		String dirPath = sb.toString();
+		String path = sb.append("train_gender.arff").toString();
+		String relationName = "Text features for training GENDER classifier";
+		ArrayList<Attribute> attrs = TextFeatureVector.baseHeader(userIds);
+		
+		Instances data = new Instances(relationName, attrs, trainData.size());
+		
+		TextFeatureVector fv = null;
+		
+		for (Map.Entry<String, TextFeatureVector> entry : trainData.entrySet()) {
+			fv = entry.getValue();
+			data.add(fv.getInstance(data));
+		}
+		
+		data.setClass(data.attribute("gender"));
+		saveArff(data, path);
+		
+		sb = new StringBuilder(dirPath);
+		path = sb.append("train_age.arff").toString();
+		relationName = "Text features for training AGE classifier";
+		data.setRelationName(relationName);
+		data.setClass(data.attribute("age"));
+		saveArff(data, path);
+	}
+	
+	private static void saveArff(Instances data, String filePath)
+			throws IOException {
+		ArffSaver arff = new ArffSaver();
+		arff.setInstances(data);
+		arff.setFile(new File(filePath));
+
+		arff.writeBatch();
+		System.out.printf("Saved %s attributes and %s instances:\n\t%s\n",
+				data.numAttributes(), data.size(), filePath);
 
 	}
 
@@ -59,7 +113,7 @@ public final class FeatureExtractor {
 		String path = "";
 		StringBuilder sb;
 		String line = "";
-		
+
 		if (!outDir.endsWith(File.separator)) {
 			outDir += File.separator;
 		}
@@ -90,7 +144,7 @@ public final class FeatureExtractor {
 
 	public static Map<String, List<Tweet>> tweetsData(String tweetsFilePath)
 			throws IOException {
-		Map<String, List<Tweet>> result = new HashMap<String, List<Tweet>>();
+		tweetsData = new HashMap<String, List<Tweet>>();
 		BufferedReader br = null;
 		String line = "";
 		File file = new File(tweetsFilePath);
@@ -107,19 +161,19 @@ public final class FeatureExtractor {
 			while ((line = br.readLine()) != null) {
 
 				tw = gson.fromJson(line, Tweet.class);
-				
+
 				// Strip control characters
-				
+
 				tw.text(tw.text());
 				userId = tw.userId();
-				
-				if (result.containsKey(userId)) {
-					tweets = result.get(userId);
+
+				if (tweetsData.containsKey(userId)) {
+					tweets = tweetsData.get(userId);
 					tweets.add(tw);
 				} else {
 					tweets = new ArrayList<Tweet>();
 					tweets.add(tw);
-					result.put(userId, tweets);
+					tweetsData.put(userId, tweets);
 				}
 				count++;
 
@@ -130,13 +184,14 @@ public final class FeatureExtractor {
 			}
 		}
 		System.out.printf("Loaded tweets data: %s users and %s tweets\n",
-				result.size(), count);
-		return result;
+				tweetsData.size(), count);
+		return tweetsData;
 	}
 
 	public static Map<String, TextFeatureVector> trainData(String trainFilePath)
 			throws IOException {
-		Map<String, TextFeatureVector> users = new HashMap<String, TextFeatureVector>();
+		trainData = new HashMap<String, TextFeatureVector>();
+		userIds = new ArrayList<String>();
 		final CharMatcher WHITESPACE_DOUBLE_QUOTES = CharMatcher.WHITESPACE
 				.or(CharMatcher.is('\"'));
 		BufferedReader br = null;
@@ -149,6 +204,7 @@ public final class FeatureExtractor {
 		String userId;
 		String gender;
 		String age;
+		
 		System.out.printf("Loading train data...\n\t%s\n", trainFilePath);
 		try {
 
@@ -170,19 +226,18 @@ public final class FeatureExtractor {
 				gender = tokens.get(1);
 				age = tokens.get(2);
 				fv = new TextFeatureVector(userId, gender, age);
-				users.put(userId, fv);
-
+				trainData.put(userId, fv);
+				userIds.add(userId);
 			}
 		} finally {
 			if (br != null) {
 				br.close();
 			}
 		}
-		System.out.printf("Loaded train data (%s users)\n", users.size());
-		return users;
+		System.out.printf("Loaded train data (%s users)\n", trainData.size());
+		
+		return trainData;
 	}
-
-	
 
 	public static void debug(Map<String, List<Tweet>> tweetsData) {
 		String userId = "";
