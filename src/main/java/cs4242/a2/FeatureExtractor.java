@@ -24,7 +24,7 @@ import com.google.common.base.Strings;
 import com.google.gson.Gson;
 
 public final class FeatureExtractor {
-	
+
 	private static List<String> userIds;
 	private static Map<String, TextFeatureVector> trainData;
 	private static Map<String, List<Tweet>> tweetsData;
@@ -35,9 +35,9 @@ public final class FeatureExtractor {
 
 	public static void main(String[] args) throws IOException {
 
-		if (args.length != 5) {
+		if (args.length != 6) {
 			System.out
-					.println("Usage: FeatureExtractor <train.csv> <tweets.json>");
+					.println("Usage: FeatureExtractor <train.csv> <tweets.json> <tweets output directory> <print tweets flag> <train set output directory>");
 			System.exit(1);
 		}
 		String trainPath = args[0];
@@ -45,45 +45,56 @@ public final class FeatureExtractor {
 		String tweetsOutDir = args[2];
 		String printTweetsFlag = args[3];
 		String trainOutDir = args[4];
+		String liwcPath = args[5];
 
 		long startTime = System.currentTimeMillis();
+		
+		try {
 
-		trainData = trainData(trainPath);
+		trainData(trainPath);
 
-		tweetsData = tweetsData(tweetsPath);
+		tweetsData(tweetsPath);
 
 		if (printTweetsFlag.equals("printTweets:true")) {
 			printTweets(tweetsData, tweetsOutDir);
 		}
-		
+
+		liwcData(liwcPath);
+
 		saveTrainSet(trainOutDir);
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		long elapsedTime = System.currentTimeMillis() - startTime;
 		System.out.printf("Done! Run time: %ss\n", elapsedTime / 1000);
 
 	}
-	
+
 	public static void saveTrainSet(String outDir) throws IOException {
-		
+
 		StringBuilder sb = new StringBuilder(outDir);
 		sb.append(File.separator);
 		String dirPath = sb.toString();
 		String path = sb.append("train_gender.arff").toString();
 		String relationName = "Text features for training GENDER classifier";
+
 		ArrayList<Attribute> attrs = TextFeatureVector.baseHeader(userIds);
-		
+		attrs.addAll(TextFeatureVector.liwcHeader());
+
 		Instances data = new Instances(relationName, attrs, trainData.size());
-		
+
 		TextFeatureVector fv = null;
-		
+
 		for (Map.Entry<String, TextFeatureVector> entry : trainData.entrySet()) {
 			fv = entry.getValue();
 			data.add(fv.getInstance(data));
 		}
-		
+
 		data.setClass(data.attribute("gender"));
 		saveArff(data, path);
-		
+
 		sb = new StringBuilder(dirPath);
 		path = sb.append("train_age.arff").toString();
 		relationName = "Text features for training AGE classifier";
@@ -91,7 +102,7 @@ public final class FeatureExtractor {
 		data.setClass(data.attribute("age"));
 		saveArff(data, path);
 	}
-	
+
 	private static void saveArff(Instances data, String filePath)
 			throws IOException {
 		ArffSaver arff = new ArffSaver();
@@ -204,7 +215,7 @@ public final class FeatureExtractor {
 		String userId;
 		String gender;
 		String age;
-		
+
 		System.out.printf("Loading train data...\n\t%s\n", trainFilePath);
 		try {
 
@@ -235,7 +246,44 @@ public final class FeatureExtractor {
 			}
 		}
 		System.out.printf("Loaded train data (%s users)\n", trainData.size());
-		
+
+		return trainData;
+	}
+
+	public static Map<String, TextFeatureVector> liwcData(String filePath)
+			throws IOException {
+		BufferedReader br = null;
+		String line = "";
+		File file = new File(filePath);
+		List<String> values = null;
+		String userId = "";
+		TextFeatureVector fv = null;
+		System.out.printf("Loading liwc data...\n\t%s\n", filePath);
+		try {
+
+			br = new BufferedReader(new FileReader(file));
+
+			// Skip the header row
+
+			br.readLine();
+
+			while ((line = br.readLine()) != null) {
+				values = Splitter.on(".txt\t").trimResults().splitToList(line);
+				userId = values.get(0);
+
+				fv = trainData.get(userId);
+
+				if (fv != null) {
+					fv.liwc(line);
+				}
+
+			}
+		} finally {
+			if (br != null) {
+				br.close();
+			}
+		}
+		System.out.println("Loaded liwc data");
 		return trainData;
 	}
 

@@ -15,11 +15,16 @@ public final class StringUtil {
 	public static String lowerTrim(String s) {
 		s = Strings.nullToEmpty(s);
 		s = s.toLowerCase();
-		s = CharMatcher.WHITESPACE.trimFrom(s);
-		return s;
+		return trim(s);
 	}
 	
 	public static String stripControlCharacters(String s) {
 		return CONTROL_CHARACTERS.removeFrom(s);
+	}
+	
+	public static String trim(String s) {
+		s = Strings.nullToEmpty(s);
+		s = CharMatcher.WHITESPACE.trimFrom(s);
+		return s;
 	}
 }
