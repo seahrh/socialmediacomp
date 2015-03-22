@@ -14,6 +14,13 @@
 	<prerequisites>
 		<maven>3.1.0</maven>
 	</prerequisites>
+	<repositories>
+		<repository>
+			<id>jlangdetect-googlecode</id>
+			<name>JLangDetect Maven repository</name>
+			<url>https://jlangdetect.googlecode.com/svn/repo</url>
+		</repository>
+	</repositories>
 	<dependencies>
 		<!-- Compile/runtime dependencies -->
 		<dependency>
@@ -63,6 +70,18 @@
 			<!-- Version 3.4.1 is latest version for Java 7. 3.5.0 and up requires 
 				Java 8. -->
 			<version>3.4.1</version>
+		</dependency>
+		<!-- Spell checking -->
+		<dependency>
+			<groupId>org.languagetool</groupId>
+			<artifactId>language-en</artifactId>
+			<version>2.8</version>
+		</dependency>
+		<!-- Language detection -->
+		<dependency>
+			<groupId>me.champeau.jlangdetect</groupId>
+			<artifactId>jlangdetect-extra</artifactId>
+			<version>0.4</version>
 		</dependency>
 		<!-- Stanford NLP model files are a separate dependency -->
 		<!-- <dependency> <groupId>edu.stanford.nlp</groupId> <artifactId>stanford-corenlp</artifactId> 

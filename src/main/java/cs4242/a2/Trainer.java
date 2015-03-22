@@ -1,5 +1,6 @@
 package cs4242.a2;
 
+import static cs4242.a2.FileUtil.*;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -157,21 +158,7 @@ public final class Trainer {
 		return multi;
 	}
 
-	private static void save(String output, String filePath) throws IOException {
-		File file = new File(filePath);
-		BufferedWriter bw = null;
-
-		try {
-			bw = new BufferedWriter(new FileWriter(file));
-			bw.write(output);
-
-		} finally {
-			if (bw != null) {
-				bw.close();
-			}
-		}
-		System.out.printf("Saved file: %s\n", filePath);
-	}
+	
 	
 	private static void saveModel(String outDir, String modelName, Classifier cls) throws Exception {
 		StringBuilder sb = new StringBuilder(outDir);

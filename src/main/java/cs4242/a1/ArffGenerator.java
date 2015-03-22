@@ -1,12 +1,11 @@
 package cs4242.a1;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static cs4242.a2.FileUtil.save;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -478,22 +477,6 @@ public final class ArffGenerator {
 
 	}
 
-	public static void save(List<String> output, String filePath)
-			throws IOException {
-		File file = new File(filePath);
-		BufferedWriter bw = null;
-
-		try {
-			bw = new BufferedWriter(new FileWriter(file));
-			for (String item : output) {
-				bw.write(item + "\n");
-			}
-			System.out.printf("Saved %s items: %s\n", output.size(), filePath);
-		} finally {
-			if (bw != null) {
-				bw.close();
-			}
-		}
-	}
+	
 
 }

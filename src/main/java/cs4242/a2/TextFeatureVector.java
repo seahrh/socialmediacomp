@@ -90,6 +90,7 @@ public class TextFeatureVector {
 	private double assent;
 	private double nonFluencies;
 	private double fillers;
+	private int spellingErrors;
 
 	private TextFeatureVector() {
 		userId = "";
@@ -165,6 +166,7 @@ public class TextFeatureVector {
 		assent = 0;
 		nonFluencies = 0;
 		fillers = 0;
+		spellingErrors = 0;
 	}
 
 	public TextFeatureVector(String userId) {
@@ -293,6 +295,15 @@ public class TextFeatureVector {
 		fillers = Doubles.tryParse(values.get(70));
 		return this;
 	}
+	
+	public int spellingErrors() {
+		return spellingErrors;
+	}
+	
+	public TextFeatureVector spellingErrors(int count) {
+		spellingErrors = count;
+		return this;
+	}
 
 	public static ArrayList<Attribute> baseHeader(List<String> userIds) {
 
@@ -308,6 +319,13 @@ public class TextFeatureVector {
 				.add("dummy", "18-24", "25-34", "35-49", "50-64", "65-xx")
 				.build();
 		attrs.add(new Attribute("age", values));
+		return attrs;
+	}
+	
+	public static ArrayList<Attribute> spellHeader() {
+		final int NUMBER_OF_SPELL_ATTRIBUTES = 70;
+		ArrayList<Attribute> attrs = new ArrayList<Attribute>(NUMBER_OF_SPELL_ATTRIBUTES);
+		attrs.add(new Attribute("spell_errors"));
 		return attrs;
 	}
 
@@ -396,6 +414,7 @@ public class TextFeatureVector {
 		inst.setValue(header.attribute("age"), age);
 		
 		setLiwcAttributes(inst);
+		setSpellingAttributes(inst);
 		return inst;
 	}
 
@@ -683,6 +702,16 @@ public class TextFeatureVector {
 			inst.setValue(attr, fillers);
 		}
 		
+		return inst;
+	}
+	
+	private Instance setSpellingAttributes(Instance inst) {
+		Instances header = inst.dataset();
+		Attribute attr = null;
+		attr = header.attribute("spell_errors");
+		if (attr != null) {
+			inst.setValue(attr, spellingErrors);
+		}
 		return inst;
 	}
 }
