@@ -29,6 +29,9 @@ import com.google.common.base.Splitter;
 import com.google.common.primitives.Ints;
 import com.google.gson.Gson;
 
+import edu.stanford.nlp.process.Morphology;
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+
 public final class FeatureExtractor {
 
 	private static List<String> userIds;
@@ -41,7 +44,7 @@ public final class FeatureExtractor {
 
 	public static void main(String[] args) {
 
-		if (args.length != 7) {
+		if (args.length != 9) {
 			System.out
 					.println("Usage: FeatureExtractor <train.csv> <tweets.json> <tweets output directory> <print tweets flag> <train set output directory>");
 			System.exit(1);
@@ -53,7 +56,10 @@ public final class FeatureExtractor {
 		String workingDir = args[4];
 		String liwcPath = args[5];
 		String runSpellChecker = args[6];
+		String taggerPath = args[7];
+		String runPosTagger = args[8];
 
+		Map<String, String> taggedTweets = null;
 		long startTime = System.currentTimeMillis();
 
 		try {
@@ -74,6 +80,13 @@ public final class FeatureExtractor {
 			} else {
 				loadSpellingResult(trainData, workingDir);
 			}
+			
+			if (runPosTagger.equals("runPosTagger:true")) {
+				taggedTweets = tagPos(tweetsData, taggerPath);
+				saveTaggedTweets(taggedTweets, workingDir);
+			} else {
+				taggedTweets = loadTaggedTweets(workingDir);
+			}
 
 			saveTrainSet(workingDir);
 
@@ -84,6 +97,99 @@ public final class FeatureExtractor {
 		long elapsedTime = System.currentTimeMillis() - startTime;
 		System.out.printf("Done! Run time: %ss\n", elapsedTime / 1000);
 
+	}
+	
+	public static Map<String, String> tagPos(Map<String, List<Tweet>> tweets, String taggerFilePath) {
+		MaxentTagger tagger = new MaxentTagger(taggerFilePath);
+		
+		Map<String, String> taggedTweets = new HashMap<String, String>();
+		String userId = "";
+		String tagged = "";
+		List<Tweet> tws = null;
+		String text = "";
+		StringBuilder sb = null;
+		for (Map.Entry<String, List<Tweet>> entry : tweets.entrySet()) {
+			userId = entry.getKey();
+			tws = entry.getValue();
+			sb = new StringBuilder();
+			
+			for (Tweet tw : tws) {
+				text = tw.text();
+				tagged = tagger.tagString(text);
+				sb.append(tagged);
+				sb.append(" ");
+			}
+			
+			tagged = sb.toString();
+			taggedTweets.put(userId, tagged);
+		}
+		return taggedTweets;
+	}
+	
+	public static void saveTaggedTweets(Map<String, String> taggedTweets, String outDir) throws IOException {
+		final char SEPARATOR = '\t';
+		StringBuilder sb = new StringBuilder(outDir);
+		sb.append(File.separator);
+		sb.append("tagged.txt");
+		String path = sb.toString();
+		String userId = "";
+		String tagged = "";
+		sb = new StringBuilder();
+		
+		for (Map.Entry<String, String> entry : taggedTweets.entrySet()) {
+			
+			userId = entry.getKey();
+			tagged = entry.getValue();
+			sb.append(userId);
+			sb.append(SEPARATOR);
+			sb.append(tagged);
+			sb.append("\n");
+			
+		}
+		String out = sb.toString();
+		save(out, path);
+	}
+	
+	private static Map<String, String> loadTaggedTweets(String dirPath)
+			throws IOException {
+		Map<String, String> taggedTweets = new HashMap<String, String>();
+		StringBuilder sb = new StringBuilder(dirPath);
+		sb.append(File.separator);
+		sb.append("tagged.txt");
+		String path = sb.toString();
+		String userId = "";
+		File file = new File(path);
+		BufferedReader br = null;
+		String line = "";
+		String tagged = "";
+		List<String> values = null;
+		int numValues = 0;
+
+		System.out.printf("Loading POS tagger results...\n\t%s\n", path);
+		try {
+
+			br = new BufferedReader(new FileReader(file));
+
+			while ((line = br.readLine()) != null) {
+
+				values = Splitter.on("\t").trimResults().splitToList(line);
+				numValues = values.size();
+				checkState(numValues == 2, "Expected 2 values but found %s",
+						numValues);
+
+				userId = values.get(0);
+				tagged = values.get(1);
+				taggedTweets.put(userId, tagged);
+
+			}
+		} finally {
+			if (br != null) {
+				br.close();
+			}
+		}
+		System.out.println("Loaded POS tagger results");
+
+		return taggedTweets;
 	}
 
 	public static void detectLang(Map<String, List<Tweet>> tweets) {

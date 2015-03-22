@@ -91,6 +91,11 @@ public class TextFeatureVector {
 	private double nonFluencies;
 	private double fillers;
 	private int spellingErrors;
+	private int tweets;
+	private int mentions;
+	private int hashtags;
+	private int retweets;
+	private int urls;
 
 	private TextFeatureVector() {
 		userId = "";
@@ -167,6 +172,11 @@ public class TextFeatureVector {
 		nonFluencies = 0;
 		fillers = 0;
 		spellingErrors = 0;
+		tweets = 0;
+		mentions = 0;
+		hashtags = 0;
+		retweets = 0;
+		urls = 0;
 	}
 
 	public TextFeatureVector(String userId) {
@@ -323,9 +333,20 @@ public class TextFeatureVector {
 	}
 	
 	public static ArrayList<Attribute> spellHeader() {
-		final int NUMBER_OF_SPELL_ATTRIBUTES = 70;
+		final int NUMBER_OF_SPELL_ATTRIBUTES = 1;
 		ArrayList<Attribute> attrs = new ArrayList<Attribute>(NUMBER_OF_SPELL_ATTRIBUTES);
 		attrs.add(new Attribute("spell_errors"));
+		return attrs;
+	}
+	
+	public static ArrayList<Attribute> twitterHeader() {
+		final int NUMBER_OF_ATTRIBUTES = 5;
+		ArrayList<Attribute> attrs = new ArrayList<Attribute>(NUMBER_OF_ATTRIBUTES);
+		attrs.add(new Attribute("twttr_tweets"));
+		attrs.add(new Attribute("twttr_mentions"));
+		attrs.add(new Attribute("twttr_hashtags"));
+		attrs.add(new Attribute("twttr_retweets"));
+		attrs.add(new Attribute("twttr_urls"));
 		return attrs;
 	}
 
