@@ -17,6 +17,8 @@ import java.util.Map;
 import weka.core.Attribute;
 import weka.core.Instances;
 import weka.core.converters.ArffSaver;
+import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.Normalize;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
@@ -33,7 +35,7 @@ public final class FeatureExtractor {
 		// Private constructor, not meant to be instantiated
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 
 		if (args.length != 6) {
 			System.out
@@ -72,13 +74,13 @@ public final class FeatureExtractor {
 
 	}
 
-	public static void saveTrainSet(String outDir) throws IOException {
+	public static void saveTrainSet(String outDir) throws Exception {
 
 		StringBuilder sb = new StringBuilder(outDir);
 		sb.append(File.separator);
-		String dirPath = sb.toString();
-		String path = sb.append("train_gender.arff").toString();
-		String relationName = "Text features for training GENDER classifier";
+		
+		String path = sb.append("text_train.arff").toString();
+		String relationName = "Text features";
 
 		ArrayList<Attribute> attrs = TextFeatureVector.baseHeader(userIds);
 		attrs.addAll(TextFeatureVector.liwcHeader());
@@ -92,15 +94,10 @@ public final class FeatureExtractor {
 			data.add(fv.getInstance(data));
 		}
 
-		data.setClass(data.attribute("gender"));
+		//data.setClass(data.attribute("gender"));
 		saveArff(data, path);
 
-		sb = new StringBuilder(dirPath);
-		path = sb.append("train_age.arff").toString();
-		relationName = "Text features for training AGE classifier";
-		data.setRelationName(relationName);
-		data.setClass(data.attribute("age"));
-		saveArff(data, path);
+		
 	}
 
 	private static void saveArff(Instances data, String filePath)

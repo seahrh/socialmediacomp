@@ -218,10 +218,10 @@ public class TextFeatureVector {
 	}
 
 	public TextFeatureVector liwc(String liwc) {
-		String liwcVal = trim(liwc);
+		
 		List<String> values = Splitter.on('\t').trimResults()
-				.splitToList(liwcVal);
-		wordCount = Ints.tryParse(values.get(1));
+				.splitToList(liwc);
+		wordCount = Doubles.tryParse(values.get(1)).intValue();
 		wordsPerSentence = Doubles.tryParse(values.get(2));
 		questionMarks = Doubles.tryParse(values.get(3));
 		unique = Doubles.tryParse(values.get(4));
@@ -466,61 +466,222 @@ public class TextFeatureVector {
 		if (attr != null) {
 			inst.setValue(attr, articles);
 		}
-		articles = 0;
-		verbs = 0;
-		auxiliaryVerbs = 0;
-		pastTense = 0;
-		presentTense = 0;
-		futureTense = 0;
-		adverbs = 0;
-		prepositions = 0;
-		conjunctions = 0;
-		negations = 0;
-		quantifiers = 0;
-		numbers = 0;
-		swearWords = 0;
-		social = 0;
-		family = 0;
-		friend = 0;
-		human = 0;
-		affective = 0;
-		positiveEmotion = 0;
-		negativeEmotion = 0;
-		anxiety = 0;
-		anger = 0;
-		sadness = 0;
-		cognitive = 0;
-		insight = 0;
-		causation = 0;
-		discrepancy = 0;
-		tentative = 0;
-		certainty = 0;
-		inhibition = 0;
-		inclusive = 0;
-		exclusive = 0;
-		perceptual = 0;
-		see = 0;
-		hear = 0;
-		feel = 0;
-		biological = 0;
-		body = 0;
-		health = 0;
-		sexual = 0;
-		ingestion = 0;
-		relativity = 0;
-		motion = 0;
-		space = 0;
-		time = 0;
-		work = 0;
-		achievement = 0;
-		leisure = 0;
-		home = 0;
-		money = 0;
-		religion = 0;
-		death = 0;
-		assent = 0;
-		nonFluencies = 0;
-		fillers = 0;
+		attr = header.attribute("liwc_verbs");
+		if (attr != null) {
+			inst.setValue(attr, verbs);
+		}
+		attr = header.attribute("liwc_auxiliary_verbs");
+		if (attr != null) {
+			inst.setValue(attr, auxiliaryVerbs);
+		}
+		attr = header.attribute("liwc_past_tense");
+		if (attr != null) {
+			inst.setValue(attr, pastTense);
+		}
+		attr = header.attribute("liwc_present_tense");
+		if (attr != null) {
+			inst.setValue(attr, presentTense);
+		}
+		attr = header.attribute("liwc_future_tense");
+		if (attr != null) {
+			inst.setValue(attr, futureTense);
+		}
+		attr = header.attribute("liwc_adverbs");
+		if (attr != null) {
+			inst.setValue(attr, adverbs);
+		}
+		attr = header.attribute("liwc_prepositions");
+		if (attr != null) {
+			inst.setValue(attr, prepositions);
+		}
+		attr = header.attribute("liwc_conjunctions");
+		if (attr != null) {
+			inst.setValue(attr, conjunctions);
+		}
+		attr = header.attribute("liwc_negations");
+		if (attr != null) {
+			inst.setValue(attr, negations);
+		}
+		attr = header.attribute("liwc_quantifiers");
+		if (attr != null) {
+			inst.setValue(attr, quantifiers);
+		}
+		attr = header.attribute("liwc_numbers");
+		if (attr != null) {
+			inst.setValue(attr, numbers);
+		}
+		attr = header.attribute("liwc_swear_words");
+		if (attr != null) {
+			inst.setValue(attr, swearWords);
+		}
+		attr = header.attribute("liwc_social");
+		if (attr != null) {
+			inst.setValue(attr, social);
+		}
+		attr = header.attribute("liwc_family");
+		if (attr != null) {
+			inst.setValue(attr, family);
+		}
+		attr = header.attribute("liwc_friend");
+		if (attr != null) {
+			inst.setValue(attr, friend);
+		}
+		attr = header.attribute("liwc_human");
+		if (attr != null) {
+			inst.setValue(attr, human);
+		}
+		attr = header.attribute("liwc_affective");
+		if (attr != null) {
+			inst.setValue(attr, affective);
+		}
+		attr = header.attribute("liwc_positive_emotion");
+		if (attr != null) {
+			inst.setValue(attr, positiveEmotion);
+		}
+		attr = header.attribute("liwc_negative_emotion");
+		if (attr != null) {
+			inst.setValue(attr, negativeEmotion);
+		}
+		attr = header.attribute("liwc_anxiety");
+		if (attr != null) {
+			inst.setValue(attr, anxiety);
+		}
+		attr = header.attribute("liwc_anger");
+		if (attr != null) {
+			inst.setValue(attr, anger);
+		}
+		attr = header.attribute("liwc_sadness");
+		if (attr != null) {
+			inst.setValue(attr, sadness);
+		}
+		attr = header.attribute("liwc_cognitive");
+		if (attr != null) {
+			inst.setValue(attr, cognitive);
+		}
+		attr = header.attribute("liwc_insight");
+		if (attr != null) {
+			inst.setValue(attr, insight);
+		}
+		attr = header.attribute("liwc_causation");
+		if (attr != null) {
+			inst.setValue(attr, causation);
+		}
+		attr = header.attribute("liwc_discrepancy");
+		if (attr != null) {
+			inst.setValue(attr, discrepancy);
+		}
+		attr = header.attribute("liwc_tentative");
+		if (attr != null) {
+			inst.setValue(attr, tentative);
+		}
+		attr = header.attribute("liwc_certainty");
+		if (attr != null) {
+			inst.setValue(attr, certainty);
+		}
+		attr = header.attribute("liwc_inhibition");
+		if (attr != null) {
+			inst.setValue(attr, inhibition);
+		}
+		attr = header.attribute("liwc_inclusive");
+		if (attr != null) {
+			inst.setValue(attr, inclusive);
+		}
+		attr = header.attribute("liwc_exclusive");
+		if (attr != null) {
+			inst.setValue(attr, exclusive);
+		}
+		attr = header.attribute("liwc_perceptual");
+		if (attr != null) {
+			inst.setValue(attr, perceptual);
+		}
+		attr = header.attribute("liwc_see");
+		if (attr != null) {
+			inst.setValue(attr, see);
+		}
+		attr = header.attribute("liwc_hear");
+		if (attr != null) {
+			inst.setValue(attr, hear);
+		}
+		attr = header.attribute("liwc_feel");
+		if (attr != null) {
+			inst.setValue(attr, feel);
+		}
+		attr = header.attribute("liwc_biological");
+		if (attr != null) {
+			inst.setValue(attr, biological);
+		}
+		attr = header.attribute("liwc_body");
+		if (attr != null) {
+			inst.setValue(attr, body);
+		}
+		attr = header.attribute("liwc_health");
+		if (attr != null) {
+			inst.setValue(attr, health);
+		}
+		attr = header.attribute("liwc_sexual");
+		if (attr != null) {
+			inst.setValue(attr, sexual);
+		}
+		attr = header.attribute("liwc_ingestion");
+		if (attr != null) {
+			inst.setValue(attr, ingestion);
+		}
+		attr = header.attribute("liwc_relativity");
+		if (attr != null) {
+			inst.setValue(attr, relativity);
+		}
+		attr = header.attribute("liwc_motion");
+		if (attr != null) {
+			inst.setValue(attr, motion);
+		}
+		attr = header.attribute("liwc_space");
+		if (attr != null) {
+			inst.setValue(attr, space);
+		}
+		attr = header.attribute("liwc_time");
+		if (attr != null) {
+			inst.setValue(attr, time);
+		}
+		attr = header.attribute("liwc_work");
+		if (attr != null) {
+			inst.setValue(attr, work);
+		}
+		attr = header.attribute("liwc_achievement");
+		if (attr != null) {
+			inst.setValue(attr, achievement);
+		}
+		attr = header.attribute("liwc_leisure");
+		if (attr != null) {
+			inst.setValue(attr, leisure);
+		}
+		attr = header.attribute("liwc_home");
+		if (attr != null) {
+			inst.setValue(attr, home);
+		}
+		attr = header.attribute("liwc_money");
+		if (attr != null) {
+			inst.setValue(attr, money);
+		}
+		attr = header.attribute("liwc_religion");
+		if (attr != null) {
+			inst.setValue(attr, religion);
+		}
+		attr = header.attribute("liwc_death");
+		if (attr != null) {
+			inst.setValue(attr, death);
+		}
+		attr = header.attribute("liwc_assent");
+		if (attr != null) {
+			inst.setValue(attr, assent);
+		}
+		attr = header.attribute("liwc_non_fluencies");
+		if (attr != null) {
+			inst.setValue(attr, nonFluencies);
+		}
+		attr = header.attribute("liwc_fillers");
+		if (attr != null) {
+			inst.setValue(attr, fillers);
+		}
 		
 		return inst;
 	}
