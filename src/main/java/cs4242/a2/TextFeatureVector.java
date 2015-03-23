@@ -96,6 +96,17 @@ public class TextFeatureVector {
 	private int hashtags;
 	private int retweets;
 	private int urls;
+	private int foreignWords;
+	private boolean working;
+	private boolean workingSenior;
+	private boolean son;
+	private boolean daughter;
+	private boolean grandfather;
+	private boolean grandmother;
+	private boolean married;
+	private boolean student;
+	private boolean male;
+	private boolean female;
 
 	private TextFeatureVector() {
 		userId = "";
@@ -177,6 +188,19 @@ public class TextFeatureVector {
 		hashtags = 0;
 		retweets = 0;
 		urls = 0;
+		foreignWords = 0;
+		working = false;
+		workingSenior = false;
+
+		son = false;
+		daughter = false;
+
+		grandfather = false;
+		grandmother = false;
+		married = false;
+		student = false;
+		male = false;
+		female = false;
 	}
 
 	public TextFeatureVector(String userId) {
@@ -230,9 +254,8 @@ public class TextFeatureVector {
 	}
 
 	public TextFeatureVector liwc(String liwc) {
-		
-		List<String> values = Splitter.on('\t').trimResults()
-				.splitToList(liwc);
+
+		List<String> values = Splitter.on('\t').trimResults().splitToList(liwc);
 		wordCount = Doubles.tryParse(values.get(1)).intValue();
 		wordsPerSentence = Doubles.tryParse(values.get(2));
 		questionMarks = Doubles.tryParse(values.get(3));
@@ -305,14 +328,178 @@ public class TextFeatureVector {
 		fillers = Doubles.tryParse(values.get(70));
 		return this;
 	}
-	
+
 	public int spellingErrors() {
 		return spellingErrors;
 	}
-	
+
 	public TextFeatureVector spellingErrors(int count) {
 		spellingErrors = count;
 		return this;
+	}
+
+	public int tweets() {
+		return tweets;
+	}
+
+	public TextFeatureVector tweets(int count) {
+		tweets = count;
+		return this;
+	}
+
+	public int mentions() {
+		return mentions;
+	}
+
+	public TextFeatureVector mentions(int count) {
+		mentions = count;
+		return this;
+	}
+
+	public int hashtags() {
+		return hashtags;
+	}
+
+	public TextFeatureVector hashtags(int count) {
+		hashtags = count;
+		return this;
+	}
+
+	public int retweets() {
+		return retweets;
+	}
+
+	public TextFeatureVector retweets(int count) {
+		retweets = count;
+		return this;
+	}
+
+	public int urls() {
+		return urls;
+	}
+
+	public TextFeatureVector urls(int count) {
+		urls = count;
+		return this;
+	}
+
+	public int foreignWords() {
+		return foreignWords;
+	}
+
+	public TextFeatureVector foreignWords(int count) {
+		foreignWords = count;
+		return this;
+	}
+
+	public void profileWords(String profile) {
+		profile = lowerTrim(profile);
+		if (profile.indexOf("scientist") != -1
+				|| profile.indexOf("professor") != -1
+				|| profile.indexOf("founder") != -1
+				|| profile.indexOf("co-founder") != -1
+				|| profile.indexOf("ceo") != -1 || profile.indexOf("cto") != -1
+				|| profile.indexOf("cfo") != -1 || profile.indexOf("coo") != -1
+				|| profile.indexOf("cmo") != -1
+				|| profile.indexOf("postdoc") != -1
+				|| profile.indexOf("director") != -1
+				|| profile.indexOf("manager") != -1
+				|| profile.indexOf("mba") != -1 || profile.indexOf("svp") != -1
+				|| profile.indexOf("head") != -1
+				|| profile.indexOf("lead") != -1 || profile.indexOf("vp") != -1
+				|| profile.indexOf("president") != -1) {
+			workingSenior = true;
+			working = true;
+		}
+
+		if (profile.indexOf("journalist") != -1
+				|| profile.indexOf("coach") != -1
+				|| profile.indexOf("mentor") != -1
+				|| profile.indexOf("teacher") != -1
+				|| profile.indexOf("developer") != -1
+				|| profile.indexOf("editor") != -1
+				|| profile.indexOf("producer") != -1
+				|| profile.indexOf("researcher") != -1
+				|| profile.indexOf("entrepreneur") != -1
+				|| profile.indexOf("mompreneur") != -1
+				|| profile.indexOf("producer") != -1
+				|| profile.indexOf("researcher") != -1
+				|| profile.indexOf("blogger") != -1
+				|| profile.indexOf("consultant") != -1
+				|| profile.indexOf("artist") != -1
+				|| profile.indexOf("designer") != -1
+				|| profile.indexOf("employee") != -1
+				|| profile.indexOf("correspondent") != -1
+				|| profile.indexOf("colleague") != -1
+				|| profile.indexOf("coworker") != -1
+				|| profile.indexOf("author") != -1
+				|| profile.indexOf("reporter") != -1) {
+
+			working = true;
+		}
+
+		if (profile.indexOf("wife") != -1) {
+
+			female = true;
+			married = true;
+		}
+		if (profile.indexOf("father") != -1 || profile.indexOf("dad") != -1
+				|| profile.indexOf("papa") != -1) {
+
+			male = true;
+			married = true;
+		}
+		if (profile.indexOf("mother") != -1 || profile.indexOf("mom") != -1
+				|| profile.indexOf("mum") != -1
+				|| profile.indexOf("mama") != -1) {
+
+			female = true;
+			married = true;
+		}
+		if (profile.indexOf("husband") != -1) {
+			male = true;
+			married = true;
+		}
+		if (profile.indexOf("son") != -1) {
+			son = true;
+		}
+		if (profile.indexOf("daughter") != -1) {
+			daughter = true;
+		}
+		if (profile.indexOf("grandfather") != -1
+				|| profile.indexOf("grandpa") != -1) {
+			grandfather = true;
+			married = true;
+			male = true;
+		}
+		if (profile.indexOf("grandmother") != -1
+				|| profile.indexOf("grandma") != -1) {
+			grandmother = true;
+			married = true;
+			female = true;
+		}
+
+		if (profile.indexOf("postgrad") != -1 || profile.indexOf("grad") != -1
+				|| profile.indexOf("student") != -1) {
+
+			student = true;
+		}
+
+		if (profile.indexOf("dude") != -1 || profile.indexOf("guy") != -1) {
+
+			male = true;
+		}
+
+		if (profile.indexOf("girl") != -1 || profile.indexOf("gal") != -1) {
+
+			female = true;
+		}
+
+		if (profile.indexOf("married") != -1 || profile.indexOf("family") != -1) {
+
+			married = true;
+		}
+
 	}
 
 	public static ArrayList<Attribute> baseHeader(List<String> userIds) {
@@ -331,17 +518,27 @@ public class TextFeatureVector {
 		attrs.add(new Attribute("age", values));
 		return attrs;
 	}
-	
+
+	public static ArrayList<Attribute> foreignWordsHeader() {
+		final int NUMBER_OF_ATTRIBUTES = 1;
+		ArrayList<Attribute> attrs = new ArrayList<Attribute>(
+				NUMBER_OF_ATTRIBUTES);
+		attrs.add(new Attribute("foreign_words"));
+		return attrs;
+	}
+
 	public static ArrayList<Attribute> spellHeader() {
 		final int NUMBER_OF_SPELL_ATTRIBUTES = 1;
-		ArrayList<Attribute> attrs = new ArrayList<Attribute>(NUMBER_OF_SPELL_ATTRIBUTES);
+		ArrayList<Attribute> attrs = new ArrayList<Attribute>(
+				NUMBER_OF_SPELL_ATTRIBUTES);
 		attrs.add(new Attribute("spell_errors"));
 		return attrs;
 	}
-	
+
 	public static ArrayList<Attribute> twitterHeader() {
 		final int NUMBER_OF_ATTRIBUTES = 5;
-		ArrayList<Attribute> attrs = new ArrayList<Attribute>(NUMBER_OF_ATTRIBUTES);
+		ArrayList<Attribute> attrs = new ArrayList<Attribute>(
+				NUMBER_OF_ATTRIBUTES);
 		attrs.add(new Attribute("twttr_tweets"));
 		attrs.add(new Attribute("twttr_mentions"));
 		attrs.add(new Attribute("twttr_hashtags"));
@@ -350,10 +547,27 @@ public class TextFeatureVector {
 		return attrs;
 	}
 
+	public static ArrayList<Attribute> profileHeader() {
+
+		ArrayList<Attribute> attrs = new ArrayList<Attribute>();
+		attrs.add(new Attribute("pro_working"));
+		attrs.add(new Attribute("pro_working_senior"));
+		attrs.add(new Attribute("pro_son"));
+		attrs.add(new Attribute("pro_daughter"));
+		attrs.add(new Attribute("pro_grandfather"));
+		attrs.add(new Attribute("pro_grandmother"));
+		attrs.add(new Attribute("pro_married"));
+		attrs.add(new Attribute("pro_student"));
+		attrs.add(new Attribute("pro_male"));
+		attrs.add(new Attribute("pro_female"));
+		return attrs;
+	}
+
 	public static ArrayList<Attribute> liwcHeader() {
 
 		final int NUMBER_OF_LIWC_ATTRIBUTES = 70;
-		ArrayList<Attribute> attrs = new ArrayList<Attribute>(NUMBER_OF_LIWC_ATTRIBUTES);
+		ArrayList<Attribute> attrs = new ArrayList<Attribute>(
+				NUMBER_OF_LIWC_ATTRIBUTES);
 		attrs.add(new Attribute("liwc_word_count"));
 		attrs.add(new Attribute("liwc_words_per_sentence"));
 		attrs.add(new Attribute("liwc_question_marks"));
@@ -433,9 +647,12 @@ public class TextFeatureVector {
 		inst.setValue(header.attribute("user_id"), userId);
 		inst.setValue(header.attribute("gender"), gender);
 		inst.setValue(header.attribute("age"), age);
-		
+
 		setLiwcAttributes(inst);
 		setSpellingAttributes(inst);
+		// setTwitterAttributes(inst);
+		// setForeignWordsAttributes(inst);
+		// setProfileAttributes(inst);
 		return inst;
 	}
 
@@ -722,16 +939,138 @@ public class TextFeatureVector {
 		if (attr != null) {
 			inst.setValue(attr, fillers);
 		}
-		
+
 		return inst;
 	}
-	
+
 	private Instance setSpellingAttributes(Instance inst) {
 		Instances header = inst.dataset();
 		Attribute attr = null;
 		attr = header.attribute("spell_errors");
 		if (attr != null) {
 			inst.setValue(attr, spellingErrors);
+		}
+		return inst;
+	}
+
+	private Instance setForeignWordsAttributes(Instance inst) {
+		Instances header = inst.dataset();
+		Attribute attr = null;
+		attr = header.attribute("foreign_words");
+		if (attr != null) {
+			inst.setValue(attr, foreignWords);
+		}
+		return inst;
+	}
+
+	private Instance setTwitterAttributes(Instance inst) {
+		Instances header = inst.dataset();
+		Attribute attr = null;
+		attr = header.attribute("twttr_mentions");
+		if (attr != null) {
+			inst.setValue(attr, mentions);
+		}
+		attr = header.attribute("twttr_hashtags");
+		if (attr != null) {
+			inst.setValue(attr, hashtags);
+		}
+		attr = header.attribute("twttr_urls");
+		if (attr != null) {
+			inst.setValue(attr, urls);
+		}
+		attr = header.attribute("twttr_tweets");
+		if (attr != null) {
+			inst.setValue(attr, tweets);
+		}
+		attr = header.attribute("twttr_retweets");
+		if (attr != null) {
+			inst.setValue(attr, retweets);
+		}
+		return inst;
+	}
+
+	private Instance setProfileAttributes(Instance inst) {
+		Instances header = inst.dataset();
+		Attribute attr = null;
+		attr = header.attribute("pro_working");
+		if (attr != null) {
+			if (working) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_working_senior");
+		if (attr != null) {
+			if (workingSenior) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_son");
+		if (attr != null) {
+			if (son) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_daughter");
+		if (attr != null) {
+			if (daughter) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_grandfather");
+		if (attr != null) {
+			if (grandfather) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_grandmother");
+		if (attr != null) {
+			if (grandmother) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_married");
+		if (attr != null) {
+			if (married) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_student");
+		if (attr != null) {
+			if (student) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_male");
+		if (attr != null) {
+			if (male) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
+		}
+		attr = header.attribute("pro_female");
+		if (attr != null) {
+			if (female) {
+				inst.setValue(attr, 1);
+			} else {
+				inst.setValue(attr, 0);
+			}
 		}
 		return inst;
 	}

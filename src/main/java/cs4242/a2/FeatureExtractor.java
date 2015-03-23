@@ -2,10 +2,12 @@ package cs4242.a2;
 
 import static com.google.common.base.Preconditions.checkState;
 import static cs4242.a2.FileUtil.save;
+import static cs4242.a2.StringUtil.*;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -44,7 +46,7 @@ public final class FeatureExtractor {
 
 	public static void main(String[] args) {
 
-		if (args.length != 9) {
+		if (args.length != 10) {
 			System.out
 					.println("Usage: FeatureExtractor <train.csv> <tweets.json> <tweets output directory> <print tweets flag> <train set output directory>");
 			System.exit(1);
@@ -58,8 +60,9 @@ public final class FeatureExtractor {
 		String runSpellChecker = args[6];
 		String taggerPath = args[7];
 		String runPosTagger = args[8];
+		String profilePath = args[9];
 
-		Map<String, String> taggedTweets = null;
+		Map<String, List<Word>> taggedTweets = null;
 		long startTime = System.currentTimeMillis();
 
 		try {
@@ -80,13 +83,19 @@ public final class FeatureExtractor {
 			} else {
 				loadSpellingResult(trainData, workingDir);
 			}
-			
+
 			if (runPosTagger.equals("runPosTagger:true")) {
-				taggedTweets = tagPos(tweetsData, taggerPath);
-				saveTaggedTweets(taggedTweets, workingDir);
+				Map<String, String> tagged = tagPos(tweetsData, taggerPath);
+				saveTaggedTweets(tagged, workingDir);
 			} else {
 				taggedTweets = loadTaggedTweets(workingDir);
 			}
+
+			// twitterMeta(trainData, tweetsData, taggedTweets);
+			
+			//foreignWords(trainData, taggedTweets);
+			
+			//profiles(trainData, profilePath);
 
 			saveTrainSet(workingDir);
 
@@ -99,34 +108,90 @@ public final class FeatureExtractor {
 
 	}
 	
-	public static Map<String, String> tagPos(Map<String, List<Tweet>> tweets, String taggerFilePath) {
+	public static Map<String, String> profiles(Map<String, TextFeatureVector> features, String filePath) throws IOException {
+		Map<String, String> profiles = new HashMap<String, String>();
+		BufferedReader br = null;
+		String line = "";
+		File file = new File(filePath);
+		List<String> values = null;
+		String userId = "";
+		String profile = "";
+		TextFeatureVector fv = null;
+		final String dataBeginsAfter = "\"description\" : \"";
+		final String userIdBeginsAfter = "\"userId\" : \"";
+		final CharMatcher dataEndsWith = CharMatcher.anyOf("\"}");
+		int cutoff = -1;
+		System.out.printf("Loading profiles data...\n\t%s\n", filePath);
+		try {
+
+			br = new BufferedReader(new FileReader(file));
+
+			
+
+			while ((line = br.readLine()) != null) {
+				values = Splitter.on(dataBeginsAfter).trimResults().splitToList(line);
+				profile = dataEndsWith.trimTrailingFrom(values.get(1));
+				profile = lowerTrim(profile);
+				
+				values = Splitter.on(userIdBeginsAfter).trimResults().splitToList(line);
+				userId = values.get(1);
+				cutoff = userId.indexOf("\"");
+				userId = userId.substring(0, cutoff);
+				userId = lowerTrim(userId);
+				
+				fv = features.get(userId);
+
+				if (fv != null) {
+					fv.profileWords(profile);
+				}
+				
+				profiles.put(userId, profile);
+
+			}
+		} finally {
+			if (br != null) {
+				br.close();
+			}
+		}
+		System.out.println("Loaded profiles data");
+		return profiles;
+	}
+
+	public static Map<String, String> tagPos(Map<String, List<Tweet>> tweets,
+			String taggerFilePath) {
 		MaxentTagger tagger = new MaxentTagger(taggerFilePath);
-		
+
 		Map<String, String> taggedTweets = new HashMap<String, String>();
 		String userId = "";
 		String tagged = "";
 		List<Tweet> tws = null;
 		String text = "";
 		StringBuilder sb = null;
+		int count = 0;
 		for (Map.Entry<String, List<Tweet>> entry : tweets.entrySet()) {
 			userId = entry.getKey();
 			tws = entry.getValue();
 			sb = new StringBuilder();
-			
+
 			for (Tweet tw : tws) {
 				text = tw.text();
 				tagged = tagger.tagString(text);
 				sb.append(tagged);
 				sb.append(" ");
+				count++;
+				if (count % 1000 == 0) {
+					System.out.printf("Tagged %s tweets\n", count);
+				}
 			}
-			
+
 			tagged = sb.toString();
 			taggedTweets.put(userId, tagged);
 		}
 		return taggedTweets;
 	}
-	
-	public static void saveTaggedTweets(Map<String, String> taggedTweets, String outDir) throws IOException {
+
+	public static void saveTaggedTweets(Map<String, String> taggedTweets,
+			String outDir) throws IOException {
 		final char SEPARATOR = '\t';
 		StringBuilder sb = new StringBuilder(outDir);
 		sb.append(File.separator);
@@ -135,24 +200,24 @@ public final class FeatureExtractor {
 		String userId = "";
 		String tagged = "";
 		sb = new StringBuilder();
-		
+
 		for (Map.Entry<String, String> entry : taggedTweets.entrySet()) {
-			
+
 			userId = entry.getKey();
 			tagged = entry.getValue();
 			sb.append(userId);
 			sb.append(SEPARATOR);
 			sb.append(tagged);
 			sb.append("\n");
-			
+
 		}
 		String out = sb.toString();
 		save(out, path);
 	}
-	
-	private static Map<String, String> loadTaggedTweets(String dirPath)
+
+	private static Map<String, List<Word>> loadTaggedTweets(String dirPath)
 			throws IOException {
-		Map<String, String> taggedTweets = new HashMap<String, String>();
+		Map<String, List<Word>> taggedTweets = new HashMap<String, List<Word>>();
 		StringBuilder sb = new StringBuilder(dirPath);
 		sb.append(File.separator);
 		sb.append("tagged.txt");
@@ -163,6 +228,7 @@ public final class FeatureExtractor {
 		String line = "";
 		String tagged = "";
 		List<String> values = null;
+		List<Word> words = null;
 		int numValues = 0;
 
 		System.out.printf("Loading POS tagger results...\n\t%s\n", path);
@@ -179,7 +245,8 @@ public final class FeatureExtractor {
 
 				userId = values.get(0);
 				tagged = values.get(1);
-				taggedTweets.put(userId, tagged);
+				words = Word.toWords(tagged);
+				taggedTweets.put(userId, words);
 
 			}
 		} finally {
@@ -329,7 +396,10 @@ public final class FeatureExtractor {
 		ArrayList<Attribute> attrs = TextFeatureVector.baseHeader(userIds);
 		attrs.addAll(TextFeatureVector.liwcHeader());
 		attrs.addAll(TextFeatureVector.spellHeader());
-
+		// attrs.addAll(TextFeatureVector.twitterHeader());
+		//attrs.addAll(TextFeatureVector.foreignWordsHeader());
+		//attrs.addAll(TextFeatureVector.profileHeader());
+		
 		Instances data = new Instances(relationName, attrs, trainData.size());
 
 		TextFeatureVector fv = null;
@@ -526,6 +596,89 @@ public final class FeatureExtractor {
 		}
 		System.out.println("Loaded liwc data");
 		return trainData;
+	}
+
+	public static void twitterMeta(Map<String, TextFeatureVector> features,
+			Map<String, List<Tweet>> tweets,
+			Map<String, List<Word>> taggedTweets) {
+		countTweets(features, tweets);
+		String pos = "";
+		int mentions = 0;
+		int hashtags = 0;
+		int retweets = 0;
+		int urls = 0;
+		String userId = "";
+		TextFeatureVector fv = null;
+
+		for (Map.Entry<String, List<Word>> entry : taggedTweets.entrySet()) {
+			userId = entry.getKey();
+			mentions = 0;
+			hashtags = 0;
+			retweets = 0;
+			urls = 0;
+			for (Word word : entry.getValue()) {
+				pos = word.pos();
+				if (pos.equals("RT")) {
+					retweets++;
+				} else if (pos.equals("USR")) {
+					mentions++;
+				} else if (pos.equals("HT")) {
+					hashtags++;
+				} else if (pos.equals("URL")) {
+					urls++;
+				}
+			}
+			fv = features.get(userId);
+
+			if (fv != null) {
+				fv.retweets(retweets);
+				fv.mentions(mentions);
+				fv.hashtags(hashtags);
+				fv.urls(urls);
+			}
+		}
+	}
+
+	public static void foreignWords(Map<String, TextFeatureVector> features,
+			Map<String, List<Word>> taggedTweets) {
+
+		String pos = "";
+		int count = 0;
+		String userId = "";
+		TextFeatureVector fv = null;
+
+		for (Map.Entry<String, List<Word>> entry : taggedTweets.entrySet()) {
+			userId = entry.getKey();
+			count = 0;
+			for (Word word : entry.getValue()) {
+				pos = word.pos();
+				if (pos.equals("FW")) {
+					count++;
+				} 
+			}
+			fv = features.get(userId);
+
+			if (fv != null) {
+				fv.foreignWords(count);
+			}
+		}
+	}
+
+	public static void countTweets(Map<String, TextFeatureVector> features,
+			Map<String, List<Tweet>> tweets) {
+		String userId = "";
+		List<Tweet> tws = null;
+		TextFeatureVector fv = null;
+
+		for (Map.Entry<String, List<Tweet>> entry : tweets.entrySet()) {
+			userId = entry.getKey();
+			tws = entry.getValue();
+			fv = features.get(userId);
+
+			if (fv != null) {
+				fv.tweets(tws.size());
+			}
+		}
 	}
 
 	public static void debug(Map<String, List<Tweet>> tweetsData) {

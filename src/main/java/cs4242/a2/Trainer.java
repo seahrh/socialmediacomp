@@ -145,7 +145,9 @@ public final class Trainer {
 		} else if (classAttribute == 2) {
 			otherClassAttribute = 1;
 		}
-		int[] attributesToRemove = { 0, otherClassAttribute };
+		
+		
+		int[] attributesToRemove = { 0, otherClassAttribute};
 		rm.setAttributeIndicesArray(attributesToRemove);
 		filters[0] = rm;
 
