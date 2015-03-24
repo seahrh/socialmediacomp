@@ -28,6 +28,7 @@ import weka.core.converters.ArffSaver;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
 import com.google.gson.Gson;
 
@@ -46,7 +47,7 @@ public final class FeatureExtractor {
 
 	public static void main(String[] args) {
 
-		if (args.length != 10) {
+		if (args.length != 11) {
 			System.out
 					.println("Usage: FeatureExtractor <train.csv> <tweets.json> <tweets output directory> <print tweets flag> <train set output directory>");
 			System.exit(1);
@@ -61,6 +62,7 @@ public final class FeatureExtractor {
 		String taggerPath = args[7];
 		String runPosTagger = args[8];
 		String profilePath = args[9];
+		String arffPath = args[10];
 
 		Map<String, List<Word>> taggedTweets = null;
 		long startTime = System.currentTimeMillis();
@@ -97,7 +99,7 @@ public final class FeatureExtractor {
 			
 			//profiles(trainData, profilePath);
 
-			saveTrainSet(workingDir);
+			saveData(arffPath);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -385,12 +387,9 @@ public final class FeatureExtractor {
 		return features;
 	}
 
-	public static void saveTrainSet(String outDir) throws Exception {
+	public static void saveData(String path) throws Exception {
 
-		StringBuilder sb = new StringBuilder(outDir);
-		sb.append(File.separator);
-
-		String path = sb.append("text_train.arff").toString();
+	
 		String relationName = "Text features";
 
 		ArrayList<Attribute> attrs = TextFeatureVector.baseHeader(userIds);
@@ -516,6 +515,11 @@ public final class FeatureExtractor {
 		userIds = new ArrayList<String>();
 		final CharMatcher WHITESPACE_DOUBLE_QUOTES = CharMatcher.WHITESPACE
 				.or(CharMatcher.is('\"'));
+		String separator = ",\"";
+		String fileName = Files.getNameWithoutExtension(trainFilePath);
+		if (fileName.startsWith("test")) {
+			separator = ",";
+		}
 		BufferedReader br = null;
 		String line = "";
 
@@ -538,7 +542,7 @@ public final class FeatureExtractor {
 
 			while ((line = br.readLine()) != null) {
 
-				tokens = Splitter.on(",\"")
+				tokens = Splitter.on(separator)
 						.trimResults(WHITESPACE_DOUBLE_QUOTES)
 						.splitToList(line);
 				countTokens = tokens.size();

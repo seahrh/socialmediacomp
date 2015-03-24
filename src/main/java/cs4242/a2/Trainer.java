@@ -1,11 +1,9 @@
 package cs4242.a2;
 
-import static cs4242.a2.FileUtil.*;
-import java.io.BufferedWriter;
+import static cs4242.a2.FileUtil.save;
+
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
 import java.util.Random;
 
 import weka.classifiers.Classifier;
@@ -122,7 +120,7 @@ public final class Trainer {
 		return fc;
 	}
 
-	private static Instances instances(String path) throws IOException {
+	public static Instances instances(String path) throws IOException {
 		ArffLoader loader = new ArffLoader();
 		File file = new File(path);
 		loader.setFile(file);
