@@ -6,6 +6,7 @@ import com.google.common.base.Strings;
 public final class StringUtil {
 	
 	private static final CharMatcher CONTROL_CHARACTERS = CharMatcher.anyOf("\t\b\n\r\f");
+	public static final CharMatcher TAB_SEPARATOR = CharMatcher.is('\t');
 	
 
 	private StringUtil() {
