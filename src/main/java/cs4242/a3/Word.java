@@ -259,7 +259,7 @@ public class Word {
 
 		if (!val.isEmpty()) {
 			val = val.toLowerCase();
-
+			val = PartOfSpeech.lemmatize(val, pos);
 		}
 		return val;
 	}

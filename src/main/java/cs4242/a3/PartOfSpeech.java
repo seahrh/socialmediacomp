@@ -12,6 +12,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
 
+import edu.stanford.nlp.process.Morphology;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 
 public final class PartOfSpeech {
@@ -48,6 +49,8 @@ public final class PartOfSpeech {
 	public static final Set<String> TERM_NORMALIZATION_WHITELIST;
 
 	private static final MaxentTagger tagger = tagger();
+	
+	private static final Morphology lemmatizer = new Morphology();
 
 	static {
 		Set<String> set = Sets.newHashSet("HT", "USR", "CD", "FW",
@@ -100,6 +103,14 @@ public final class PartOfSpeech {
 
 	public static String tag(String s) {
 		return tagger.tagString(s);
+	}
+	
+	public static String lemmatize(String word, String pos) {
+		return lemmatizer.lemma(word, pos);
+	}
+	
+	public static String stem(String word) {
+		return lemmatizer.stem(word);
 	}
 
 	public static List<Word> tagAsListOfWords(String s) {
