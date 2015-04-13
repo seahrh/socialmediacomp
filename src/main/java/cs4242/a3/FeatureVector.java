@@ -22,8 +22,6 @@ import com.google.common.collect.Sets;
 
 public class FeatureVector {
 
-	
-
 	// private static ArrayList<Attribute> attributes;
 	// private static Map<String, Integer> attrIndices;
 
@@ -62,18 +60,26 @@ public class FeatureVector {
 
 	public static Instances getInstances(List<FeatureVector> featureVectors,
 			Set<String> ids) throws IOException {
-		Set<String> vocab = new HashSet<String>();
+		Set<String> globalVocab = new HashSet<String>();
+		Set<String> localVocab = null;
+		List<FeatureVector> filtered = new ArrayList<FeatureVector>();
 
 		for (FeatureVector fv : featureVectors) {
-			// data.add(fv.getInstance(data));
-			vocab.addAll(fv.bagOfWords());
+			localVocab = fv.bagOfWords();
+			
+			// Skip tweets that have less than 2 distinct words
+			
+			if (localVocab.size() > 1) {
+				filtered.add(fv);
+				globalVocab.addAll(localVocab);
+			}
 		}
 
 		ArrayList<Attribute> attrs = attributes(ids);
-		attrs.addAll(bagOfWordsAttributes(vocab));
+		attrs.addAll(bagOfWordsAttributes(globalVocab));
 		Instances data = header(attrs);
 
-		for (FeatureVector fv : featureVectors) {
+		for (FeatureVector fv : filtered) {
 			data.add(fv.getInstance(data));
 
 		}
@@ -131,6 +137,7 @@ public class FeatureVector {
 	private Set<String> bagOfWords() {
 		List<Word> words = PartOfSpeech.tagAsListOfWords(text);
 		Set<String> vocab = new HashSet<String>();
+
 		String v = "";
 		for (Word word : words) {
 			if (validVocab(word)) {
@@ -139,11 +146,12 @@ public class FeatureVector {
 				vocab.add(v);
 			}
 		}
+
 		return vocab;
 	}
 
 	public static boolean validVocab(Word word) {
-		
+
 		String pos = word.pos();
 		if (VOCABULARY_WHITELIST.contains(pos) && word.hasLetter()) {
 			return true;

@@ -1,10 +1,7 @@
 package cs4242.a3;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static cs4242.a3.StringUtil.CONTROL_CHARACTERS;
-import static cs4242.a3.StringUtil.PUNCTUATION;
-import static cs4242.a3.StringUtil.SYMBOLS;
-import static cs4242.a3.StringUtil.trim;
+import static cs4242.a3.StringUtil.*;
 import static cs4242.a3.PartOfSpeech.*;
 
 import java.util.ArrayList;
@@ -25,20 +22,12 @@ public class Word {
 			.newHashSet("HT", "URL");
 
 	private static final char SEPARATOR = '_';
-	
-	public static final Set<String> TERM_NORMALIZATION_WHITELIST;
-	
-	static {
-		Set<String> set = Sets.newHashSet();
-		set.addAll(ADJECTIVE_POS);
-		set.addAll(NOUN_POS);
-		set.addAll(PRONOUN_POS);
-		set.addAll(ADVERB_POS);
-		set.addAll(VERB_POS);
-		set.addAll(WH_POS);
-		set.addAll(OTHERS_POS);
-		TERM_NORMALIZATION_WHITELIST = set;
-	}
+
+	private static final CharMatcher NORMALIZE_HASHTAG = CharMatcher.anyOf(HEX
+			.removeFrom(SYMBOL_CHARACTERS));
+
+	private static final CharMatcher NORMALIZE_MENTION = CharMatcher
+			.anyOf((AMPERSAND.or(UNDERSCORE).removeFrom(SYMBOL_CHARACTERS)));
 
 	// Immutable fields
 
@@ -71,7 +60,7 @@ public class Word {
 		this();
 		term(term);
 		pos(pos);
-		normalizedTerm(term, pos);
+		setNormalizedTerm();
 	}
 
 	public Word(String taggedWord) {
@@ -83,7 +72,7 @@ public class Word {
 		String pos = taggedWord.substring(separatorIndex + 1);
 		term(term);
 		pos(pos);
-		normalizedTerm(term, pos);
+		setNormalizedTerm();
 	}
 
 	@Override
@@ -108,9 +97,10 @@ public class Word {
 	}
 
 	private void term(String term) {
-		String val = Strings.nullToEmpty(term);
+		String val = trim(term);
 		checkArgument(!val.isEmpty(), "Term cannot be null or empty string");
-		this.term = val;
+		val = CONTROL_CHARACTERS.removeFrom(val);
+		this.term = val.toLowerCase();
 
 	}
 
@@ -122,13 +112,15 @@ public class Word {
 	}
 
 	/**
-	 * Normalized term should only be set 
-	 * after the unnormalized term and pos are set
+	 * Normalized term should only be set after the unnormalized term and pos
+	 * are set
 	 */
-	private void normalizedTerm(String term, String pos) {
+	private void setNormalizedTerm() {
+		String val = term;
 		if (TERM_NORMALIZATION_WHITELIST.contains(pos)) {
-			this.normalizedTerm = normalize(term);
+			val = normalize(term, pos);
 		}
+		normalizedTerm = val;
 	}
 
 	/**
@@ -158,9 +150,9 @@ public class Word {
 	}
 
 	private void pos(String pos) {
-		String val = Strings.nullToEmpty(pos);
+		String val = trim(pos);
 		checkArgument(!val.isEmpty(), "POS cannot be null or empty string");
-		this.pos = val;
+		this.pos = val.toUpperCase();
 	}
 
 	/**
@@ -238,7 +230,7 @@ public class Word {
 	public void stronglySubjective(boolean stronglySubjective) {
 		this.stronglySubjective = stronglySubjective;
 	}
-	
+
 	public boolean hasLetter() {
 		return CharMatcher.JAVA_LETTER.matchesAnyOf(term);
 	}
@@ -251,13 +243,19 @@ public class Word {
 		return Joiner.on(separator).join(result);
 	}
 
-	// TODO set normalized term
-	public static String normalize(String term) {
-		String val = trim(term);
+	public static String normalize(String term, String pos) {
 
-		// Remove all punctuation, symbols and control chars
+		// Remove all punctuation, symbols
 
-		val = PUNCTUATION.or(SYMBOLS).or(CONTROL_CHARACTERS).removeFrom(val);
+		String val = PUNCTUATION.removeFrom(term);
+
+		if (pos.equals("HT")) {
+			val = NORMALIZE_HASHTAG.removeFrom(val);
+		} else if (pos.equals("USR")) {
+			val = NORMALIZE_MENTION.removeFrom(val);
+		} else {
+			val = SYMBOLS.removeFrom(val);
+		}
 
 		if (!val.isEmpty()) {
 			val = val.toLowerCase();

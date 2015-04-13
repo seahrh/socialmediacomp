@@ -1,13 +1,5 @@
 package cs4242.a3;
 
-import static cs4242.a3.PartOfSpeech.ADJECTIVE_POS;
-import static cs4242.a3.PartOfSpeech.ADVERB_POS;
-import static cs4242.a3.PartOfSpeech.NOUN_POS;
-import static cs4242.a3.PartOfSpeech.OTHERS_POS;
-import static cs4242.a3.PartOfSpeech.PRONOUN_POS;
-import static cs4242.a3.PartOfSpeech.VERB_POS;
-import static cs4242.a3.PartOfSpeech.WH_POS;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,17 +44,29 @@ public final class PartOfSpeech {
 			"WP$", "WRB");
 
 	public static final Set<String> VOCABULARY_WHITELIST;
+	
+	public static final Set<String> TERM_NORMALIZATION_WHITELIST;
 
 	private static final MaxentTagger tagger = tagger();
 
 	static {
-		Set<String> set = Sets.newHashSet("HT", "CD", "FW",
+		Set<String> set = Sets.newHashSet("HT", "USR", "CD", "FW",
 				"RP", "UH");
 		set.addAll(ADJECTIVE_POS);
 		set.addAll(NOUN_POS);
 		set.addAll(ADVERB_POS);
 		set.addAll(VERB_POS);
 		VOCABULARY_WHITELIST = set;
+		
+		set = Sets.newHashSet("HT", "USR");
+		set.addAll(ADJECTIVE_POS);
+		set.addAll(NOUN_POS);
+		set.addAll(PRONOUN_POS);
+		set.addAll(ADVERB_POS);
+		set.addAll(VERB_POS);
+		set.addAll(WH_POS);
+		set.addAll(OTHERS_POS);
+		TERM_NORMALIZATION_WHITELIST = set;
 	}
 
 	private PartOfSpeech() {

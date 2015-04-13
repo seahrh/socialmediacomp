@@ -8,10 +8,15 @@ public final class StringUtil {
 	// Follow Wikipedia's definition of punctutation
 	// @url http://en.wikipedia.org/wiki/Punctuation
 	
-	public static final CharMatcher SYMBOLS = CharMatcher.anyOf("><*%&=^~|@#$//_");
-	public static final CharMatcher PUNCTUATION = CharMatcher.anyOf("[](){}:,`.!?\"';/-");
+	public static final String SYMBOL_CHARACTERS = "><*%&=^~|@#$_\\";
+	public static final String PUNCTUATION_CHARACTERS = "[](){}:,`.!?\"';/-";
+	public static final CharMatcher SYMBOLS = CharMatcher.anyOf(SYMBOL_CHARACTERS);
+	public static final CharMatcher PUNCTUATION = CharMatcher.anyOf(PUNCTUATION_CHARACTERS);
 	public static final CharMatcher CONTROL_CHARACTERS = CharMatcher.anyOf("\t\b\n\r\f");
 	public static final CharMatcher TAB = CharMatcher.is('\t');
+	public static final CharMatcher HEX = CharMatcher.is('#');
+	public static final CharMatcher AMPERSAND = CharMatcher.is('@');
+	public static final CharMatcher UNDERSCORE = CharMatcher.is('_');
 	
 
 	private StringUtil() {
