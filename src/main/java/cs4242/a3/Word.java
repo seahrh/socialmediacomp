@@ -15,11 +15,7 @@ import com.google.common.collect.Sets;
 
 public class Word {
 
-	/**
-	 * TODO remove These POS don't carry negation semantics
-	 */
-	private static final Set<String> POS_WITH_NO_NEGATION_CONTEXT = Sets
-			.newHashSet("HT", "URL");
+	
 
 	private static final char SEPARATOR = '_';
 
@@ -135,11 +131,15 @@ public class Word {
 	 *            the negated to set
 	 */
 	public void negated(boolean negated) {
-		if (negated && POS_WITH_NO_NEGATION_CONTEXT.contains(pos)) {
-			// These POS don't carry negation semantics
+		if (!negated) {
+			this.negated = false;
 			return;
 		}
-		this.negated = negated;
+		
+		if (negated && NEGATION_WHITELIST.contains(pos)) {
+			this.negated = true;
+		}
+		
 	}
 
 	/**
@@ -263,5 +263,7 @@ public class Word {
 		}
 		return val;
 	}
+	
+	
 
 }

@@ -137,6 +137,10 @@ public class FeatureVector {
 	private Set<String> bagOfWords() {
 		List<Word> words = PartOfSpeech.tagAsListOfWords(text);
 		Set<String> vocab = new HashSet<String>();
+		
+		// Detect negation
+		
+		words = Negation.detect(words);
 
 		String v = "";
 		for (Word word : words) {

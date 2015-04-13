@@ -47,6 +47,8 @@ public final class PartOfSpeech {
 	public static final Set<String> VOCABULARY_WHITELIST;
 	
 	public static final Set<String> TERM_NORMALIZATION_WHITELIST;
+	
+	public static final Set<String> NEGATION_WHITELIST;
 
 	private static final MaxentTagger tagger = tagger();
 	
@@ -70,6 +72,14 @@ public final class PartOfSpeech {
 		set.addAll(WH_POS);
 		set.addAll(OTHERS_POS);
 		TERM_NORMALIZATION_WHITELIST = set;
+		
+		set = Sets.newHashSet();
+		set.addAll(ADJECTIVE_POS);
+		set.addAll(NOUN_POS);
+		set.addAll(ADVERB_POS);
+		set.addAll(VERB_POS);
+		set.addAll(OTHERS_POS);
+		NEGATION_WHITELIST = set;
 	}
 
 	private PartOfSpeech() {
