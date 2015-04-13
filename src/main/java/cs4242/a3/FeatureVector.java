@@ -1,5 +1,6 @@
 package cs4242.a3;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static cs4242.a3.StringUtil.trim;
 
@@ -53,6 +54,12 @@ public class FeatureVector {
 		this.id = id;
 	}
 
+	public FeatureVector(String clazz, String id, String text, int lexicalErrors) {
+		this(clazz, id, text);
+		checkArgument(lexicalErrors >= 0, "Lexical errors must not be a negative number. [%s]", lexicalErrors);
+		attrValues.put("lexical_errors", (double) lexicalErrors);
+	}
+
 	public static Instances getInstances(List<FeatureVector> featureVectors,
 			Set<String> ids) throws IOException {
 		Instances data = header(ids);
@@ -71,12 +78,17 @@ public class FeatureVector {
 		String attrName = "";
 
 		// Lexical errors
+		// Invoke spellchecker if the value is not present
 
-		val = SpellChecker.countLexicalErrors(text);
-		attrValues.put("lexical_errors", val);
+		if (!attrValues.containsKey("lexical_errors")) {
+			val = SpellChecker.countLexicalErrors(text);
+			attrValues.put("lexical_errors", val);
+		}
 
 		inst.setValue(header.attribute("class"), clazz);
 		inst.setValue(header.attribute("id"), id);
+		
+		//System.out.printf("class:%s, id:%s\n", clazz, id);
 
 		for (Map.Entry<String, Double> entry : attrValues.entrySet()) {
 			attrName = entry.getKey();
@@ -103,7 +115,7 @@ public class FeatureVector {
 		attributes = new ArrayList<Attribute>();
 		attrIndices = new HashMap<String, Integer>();
 
-		// Class attribute
+		// Class attribute (nominal)
 
 		List<String> values = ImmutableList
 				.<String> builder()
@@ -114,7 +126,7 @@ public class FeatureVector {
 		attributes.add(new Attribute("class", values));
 		attrIndices.put("class", attributes.size() - 1);
 
-		// Tweet Id attribute
+		// Tweet Id attribute (nominal)
 
 		values = new ArrayList<String>(ids.size() + 1);
 		values.add("dummy");
@@ -122,9 +134,9 @@ public class FeatureVector {
 		attributes.add(new Attribute("id", values));
 		attrIndices.put("id", attributes.size() - 1);
 
-		// Lexical errors attribute
+		// Lexical errors attribute (numeric)
 
-		attributes.add(new Attribute("lexical_errors", values));
+		attributes.add(new Attribute("lexical_errors"));
 		attrIndices.put("lexical_errors", attributes.size() - 1);
 
 		return attributes;

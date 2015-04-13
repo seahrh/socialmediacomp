@@ -23,6 +23,8 @@ public final class SpellChecker {
 	
 	private static final JLanguageTool LANGUAGE_TOOL = new JLanguageTool(new BritishEnglish());
 	
+	// Loading the language rules is expensive, so do it in the static block
+	
 	static {
 		try {
 			LANGUAGE_TOOL.activateDefaultPatternRules();
@@ -76,6 +78,11 @@ public final class SpellChecker {
 						.splitToList(line);
 				text = values.get(textIndex);
 				lexicalErrors = countLexicalErrors(text);
+				
+				// End of line may have multiple tab chars
+				// Trim all tab chars from end of line
+				
+				line = TAB_SEPARATOR.trimTrailingFrom(line);
 				
 				sb = new StringBuilder(line);
 				sb.append("\t");

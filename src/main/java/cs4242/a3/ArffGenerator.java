@@ -24,8 +24,6 @@ import com.google.common.primitives.Ints;
 
 public final class ArffGenerator {
 
-	
-
 	private static Set<String> ids;
 
 	private ArffGenerator() {
@@ -39,7 +37,7 @@ public final class ArffGenerator {
 		long startTime = System.currentTimeMillis();
 
 		try {
-			
+
 			fvs = extract();
 			data = FeatureVector.getInstances(fvs, ids);
 			saveArff(data);
@@ -59,21 +57,25 @@ public final class ArffGenerator {
 		int classIndex = Ints.tryParse(System.getProperty("col.index.class"));
 		int idIndex = Ints.tryParse(System.getProperty("col.index.id"));
 		int textIndex = Ints.tryParse(System.getProperty("col.index.text"));
+		int lexicalErrorsIndex = Ints.tryParse(System
+				.getProperty("col.index.lexerr"));
+		final int NUMBER_OF_COLUMNS = 4;
 		BufferedReader br = null;
 		BufferedWriter bw = null;
 		String line = "";
 		String clazz = "";
 		String id = "";
 		String text = "";
+		int lexicalErrors = 0;
 		File inFile = new File(inPath);
 		File outFile = new File(outPath);
 		ids = new HashSet<String>();
 		List<String> values = null;
 		int duplicates = 0;
+		int valuesSize = 0;
 		StringBuilder sb;
 		List<FeatureVector> data = new ArrayList<FeatureVector>(2000);
-		System.out.printf(
-				"Extracting features...\n\t%s\n", inPath);
+		System.out.printf("Extracting features...\n\t%s\n", inPath);
 
 		try {
 
@@ -85,11 +87,21 @@ public final class ArffGenerator {
 			br.readLine();
 
 			while ((line = br.readLine()) != null) {
+
 				values = Splitter.on(TAB_SEPARATOR).trimResults()
 						.splitToList(line);
+
+				valuesSize = values.size();
+
+				checkState(valuesSize == NUMBER_OF_COLUMNS,
+						"Expecting %s columns but found %s at line [%s]",
+						NUMBER_OF_COLUMNS, valuesSize, line);
+
 				clazz = values.get(classIndex);
 				id = values.get(idIndex);
 				text = values.get(textIndex);
+				lexicalErrors = Ints.tryParse(values.get(lexicalErrorsIndex));
+
 				if (ids.contains(id)) {
 					sb = new StringBuilder(line);
 					sb.append("\n");
@@ -97,9 +109,10 @@ public final class ArffGenerator {
 					duplicates++;
 				} else {
 					ids.add(id);
-					data.add(new FeatureVector(clazz, id, text));
+					data.add(new FeatureVector(clazz, id, text, lexicalErrors));
+
 				}
-				
+
 			}
 
 		} finally {
@@ -115,13 +128,11 @@ public final class ArffGenerator {
 		if (duplicates > 0) {
 			System.out.printf("Logged duplicates\n\t%s\n", outPath);
 		}
-		checkState(duplicates == 0, "There must not be any duplicate ids");
-		
+
 		return data;
 	}
-	
-	private static void saveArff(Instances data)
-			throws IOException {
+
+	private static void saveArff(Instances data) throws IOException {
 		ArffSaver arff = new ArffSaver();
 		String filePath = System.getProperty("output.file.path");
 		arff.setInstances(data);
