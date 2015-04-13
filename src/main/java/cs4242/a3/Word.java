@@ -1,27 +1,54 @@
 package cs4242.a3;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static cs4242.a3.StringUtil.CONTROL_CHARACTERS;
+import static cs4242.a3.StringUtil.PUNCTUATION;
+import static cs4242.a3.StringUtil.SYMBOLS;
+import static cs4242.a3.StringUtil.trim;
+import static cs4242.a3.PartOfSpeech.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
 public class Word {
 
 	/**
-	 * These POS don't carry negation semantics
+	 * TODO remove These POS don't carry negation semantics
 	 */
 	private static final Set<String> POS_WITH_NO_NEGATION_CONTEXT = Sets
 			.newHashSet("HT", "URL");
 
 	private static final char SEPARATOR = '_';
+	
+	public static final Set<String> TERM_NORMALIZATION_WHITELIST;
+	
+	static {
+		Set<String> set = Sets.newHashSet();
+		set.addAll(ADJECTIVE_POS);
+		set.addAll(NOUN_POS);
+		set.addAll(PRONOUN_POS);
+		set.addAll(ADVERB_POS);
+		set.addAll(VERB_POS);
+		set.addAll(WH_POS);
+		set.addAll(OTHERS_POS);
+		TERM_NORMALIZATION_WHITELIST = set;
+	}
+
+	// Immutable fields
 
 	private String term;
-	private boolean negated;
 	private String pos;
+	private String normalizedTerm;
 
+	// Mutable fields
+
+	private boolean negated;
 	private boolean positiveSentiment;
 	private boolean negativeSentiment;
 	private boolean positiveAndNegativeSentiment;
@@ -32,6 +59,7 @@ public class Word {
 		term = null;
 		negated = false;
 		pos = null;
+		normalizedTerm = null;
 		positiveSentiment = false;
 		negativeSentiment = false;
 		positiveAndNegativeSentiment = false;
@@ -40,98 +68,36 @@ public class Word {
 	}
 
 	public Word(String term, String pos) {
-		this(term, pos, false);
+		this();
+		term(term);
+		pos(pos);
+		normalizedTerm(term, pos);
 	}
 
-	public Word(String term, String pos, boolean negation) {
+	public Word(String taggedWord) {
 		this();
-		this.term = term;
-		this.pos = pos;
-		this.negated = negation;
+		int separatorIndex = taggedWord.lastIndexOf(String.valueOf(SEPARATOR));
+		checkArgument(separatorIndex != -1,
+				"Tagged word must have POS component. [%s]", taggedWord);
+		String term = taggedWord.substring(0, separatorIndex);
+		String pos = taggedWord.substring(separatorIndex + 1);
+		term(term);
+		pos(pos);
+		normalizedTerm(term, pos);
 	}
 
 	@Override
 	public String toString() {
-		StringBuffer result = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		if (negated) {
-			result.append("NOT_");
+			sb.append("NOT");
+			sb.append(SEPARATOR);
 		}
-		result.append(term);
-		result.append(SEPARATOR);
-		result.append(pos);
-		return result.toString();
-	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (negated ? 1231 : 1237);
-		result = prime * result + (negativeSentiment ? 1231 : 1237);
-		result = prime * result + (neutralSentiment ? 1231 : 1237);
-		result = prime * result + ((pos == null) ? 0 : pos.hashCode());
-		result = prime * result + (positiveAndNegativeSentiment ? 1231 : 1237);
-		result = prime * result + (positiveSentiment ? 1231 : 1237);
-		result = prime * result + (stronglySubjective ? 1231 : 1237);
-		result = prime * result + ((term == null) ? 0 : term.hashCode());
-		return result;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof Word)) {
-			return false;
-		}
-		Word other = (Word) obj;
-		if (negated != other.negated) {
-			return false;
-		}
-		if (negativeSentiment != other.negativeSentiment) {
-			return false;
-		}
-		if (neutralSentiment != other.neutralSentiment) {
-			return false;
-		}
-		if (pos == null) {
-			if (other.pos != null) {
-				return false;
-			}
-		} else if (!pos.equals(other.pos)) {
-			return false;
-		}
-		if (positiveAndNegativeSentiment != other.positiveAndNegativeSentiment) {
-			return false;
-		}
-		if (positiveSentiment != other.positiveSentiment) {
-			return false;
-		}
-		if (stronglySubjective != other.stronglySubjective) {
-			return false;
-		}
-		if (term == null) {
-			if (other.term != null) {
-				return false;
-			}
-		} else if (!term.equals(other.term)) {
-			return false;
-		}
-		return true;
+		sb.append(normalizedTerm);
+		sb.append(SEPARATOR);
+		sb.append(pos);
+		return sb.toString();
 	}
 
 	/**
@@ -141,12 +107,28 @@ public class Word {
 		return term;
 	}
 
+	private void term(String term) {
+		String val = Strings.nullToEmpty(term);
+		checkArgument(!val.isEmpty(), "Term cannot be null or empty string");
+		this.term = val;
+
+	}
+
 	/**
-	 * @param term
-	 *            the term to set
+	 * @return the term
 	 */
-	public void term(String term) {
-		this.term = term;
+	public String normalizedTerm() {
+		return normalizedTerm;
+	}
+
+	/**
+	 * Normalized term should only be set 
+	 * after the unnormalized term and pos are set
+	 */
+	private void normalizedTerm(String term, String pos) {
+		if (TERM_NORMALIZATION_WHITELIST.contains(pos)) {
+			this.normalizedTerm = normalize(term);
+		}
 	}
 
 	/**
@@ -175,12 +157,10 @@ public class Word {
 		return pos;
 	}
 
-	/**
-	 * @param pos
-	 *            the pos to set
-	 */
-	public void pos(String pos) {
-		this.pos = pos;
+	private void pos(String pos) {
+		String val = Strings.nullToEmpty(pos);
+		checkArgument(!val.isEmpty(), "POS cannot be null or empty string");
+		this.pos = val;
 	}
 
 	/**
@@ -258,50 +238,32 @@ public class Word {
 	public void stronglySubjective(boolean stronglySubjective) {
 		this.stronglySubjective = stronglySubjective;
 	}
+	
+	public boolean hasLetter() {
+		return CharMatcher.JAVA_LETTER.matchesAnyOf(term);
+	}
 
-	public static String toString(List<Word> features) {
+	public static String concat(List<Word> features, char separator) {
 		List<String> result = new ArrayList<String>();
 		for (Word f : features) {
 			result.add(f.toString());
 		}
-		return Joiner.on(' ').join(result);
+		return Joiner.on(separator).join(result);
 	}
 
-	public static List<Word> trimTermsTrailing(List<Word> features,
-			Set<String> substrings) {
-		List<Word> result = new ArrayList<Word>(features.size());
-		String term;
+	// TODO set normalized term
+	public static String normalize(String term) {
+		String val = trim(term);
 
-		for (Word f : features) {
-			term = f.term();
-			for (String sub : substrings) {
+		// Remove all punctuation, symbols and control chars
 
-				if (term.endsWith(sub)) {
+		val = PUNCTUATION.or(SYMBOLS).or(CONTROL_CHARACTERS).removeFrom(val);
 
-					term = term.substring(0, term.lastIndexOf(sub));
+		if (!val.isEmpty()) {
+			val = val.toLowerCase();
 
-				}
-			}
-			if (!term.isEmpty()) {
-				f.term(term);
-				result.add(f);
-			}
 		}
-		return result;
-	}
-
-	public static List<Word> trimTerms(List<Word> features, String chars) {
-		List<Word> result = new ArrayList<Word>(features.size());
-		String term;
-
-		for (Word f : features) {
-			term = CharMatcher.anyOf(chars).trimFrom(f.term());
-			if (!term.isEmpty()) {
-				f.term(term);
-				result.add(f);
-			}
-		}
-		return result;
+		return val;
 	}
 
 }

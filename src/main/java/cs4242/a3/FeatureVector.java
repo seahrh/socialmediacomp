@@ -2,32 +2,30 @@ package cs4242.a3;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static cs4242.a3.StringUtil.trim;
+import static cs4242.a3.PartOfSpeech.*;
+import static cs4242.a3.StringUtil.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.languagetool.JLanguageTool;
-import org.languagetool.language.English;
-import org.languagetool.rules.RuleMatch;
 
 import weka.core.Attribute;
 import weka.core.Instances;
 import weka.core.SparseInstance;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Doubles;
+import com.google.common.collect.Sets;
 
 public class FeatureVector {
 
-	// private static final
+	
 
-	private static ArrayList<Attribute> attributes;
-	private static Map<String, Integer> attrIndices;
+	// private static ArrayList<Attribute> attributes;
+	// private static Map<String, Integer> attrIndices;
 
 	private String clazz;
 	private String id;
@@ -43,7 +41,7 @@ public class FeatureVector {
 
 	public FeatureVector(String text) {
 		this();
-		this.text = trim(text).toLowerCase();
+		this.text = CONTROL_CHARACTERS.removeFrom(trim(text));
 	}
 
 	public FeatureVector(String clazz, String id, String text) {
@@ -56,15 +54,28 @@ public class FeatureVector {
 
 	public FeatureVector(String clazz, String id, String text, int lexicalErrors) {
 		this(clazz, id, text);
-		checkArgument(lexicalErrors >= 0, "Lexical errors must not be a negative number. [%s]", lexicalErrors);
+		checkArgument(lexicalErrors >= 0,
+				"Lexical errors must not be a negative number. [%s]",
+				lexicalErrors);
 		attrValues.put("lexical_errors", (double) lexicalErrors);
 	}
 
 	public static Instances getInstances(List<FeatureVector> featureVectors,
 			Set<String> ids) throws IOException {
-		Instances data = header(ids);
+		Set<String> vocab = new HashSet<String>();
+
+		for (FeatureVector fv : featureVectors) {
+			// data.add(fv.getInstance(data));
+			vocab.addAll(fv.bagOfWords());
+		}
+
+		ArrayList<Attribute> attrs = attributes(ids);
+		attrs.addAll(bagOfWordsAttributes(vocab));
+		Instances data = header(attrs);
+
 		for (FeatureVector fv : featureVectors) {
 			data.add(fv.getInstance(data));
+
 		}
 		return data;
 	}
@@ -77,7 +88,12 @@ public class FeatureVector {
 		Attribute attr = null;
 		String attrName = "";
 
-		// Lexical errors
+		// Class and tweet id
+
+		inst.setValue(header.attribute("class"), clazz);
+		inst.setValue(header.attribute("id"), id);
+
+		// #Lexical errors
 		// Invoke spellchecker if the value is not present
 
 		if (!attrValues.containsKey("lexical_errors")) {
@@ -85,10 +101,22 @@ public class FeatureVector {
 			attrValues.put("lexical_errors", val);
 		}
 
-		inst.setValue(header.attribute("class"), clazz);
-		inst.setValue(header.attribute("id"), id);
-		
-		//System.out.printf("class:%s, id:%s\n", clazz, id);
+		// #Uppercase chars
+
+		val = countUpper(text);
+		attrValues.put("uppercase_characters", val);
+
+		// #Punctuation or symbol chars
+
+		val = countPunctuationSymbol(text);
+		attrValues.put("punctuation_symbol_characters", val);
+
+		// Text length
+
+		val = text.length();
+		attrValues.put("text_length", val);
+
+		// System.out.printf("class:%s, id:%s\n", clazz, id);
 
 		for (Map.Entry<String, Double> entry : attrValues.entrySet()) {
 			attrName = entry.getKey();
@@ -100,45 +128,99 @@ public class FeatureVector {
 		return inst;
 	}
 
-	public static Instances header(Set<String> ids) {
+	private Set<String> bagOfWords() {
+		List<Word> words = PartOfSpeech.tagAsListOfWords(text);
+		Set<String> vocab = new HashSet<String>();
+		String v = "";
+		for (Word word : words) {
+			if (validVocab(word)) {
+				v = word.toString();
+				attrValues.put(v, 1d);
+				vocab.add(v);
+			}
+		}
+		return vocab;
+	}
+
+	public static boolean validVocab(Word word) {
+		
+		String pos = word.pos();
+		if (VOCABULARY_WHITELIST.contains(pos) && word.hasLetter()) {
+			return true;
+		}
+		return false;
+	}
+
+	public static Instances header(ArrayList<Attribute> attributes) {
 
 		final String RELATION_NAME = "A3 features";
 		final int CAPACITY = 2000;
-		Instances header = new Instances(RELATION_NAME, attributes(ids),
-				CAPACITY);
-		header.setClassIndex(attrIndices.get("class"));
+		Instances header = new Instances(RELATION_NAME, attributes, CAPACITY);
+		header.setClass(header.attribute("class"));
 		return header;
 	}
 
 	private static ArrayList<Attribute> attributes(Set<String> ids) {
 
-		attributes = new ArrayList<Attribute>();
-		attrIndices = new HashMap<String, Integer>();
+		final String DUMMY = "dummy";
+		String name = "";
+		ArrayList<Attribute> attributes = new ArrayList<Attribute>();
+		// attrIndices = new HashMap<String, Integer>();
 
-		// Class attribute (nominal)
+		// Class (nominal)
 
+		name = "class";
 		List<String> values = ImmutableList
 				.<String> builder()
-				.add("dummy", "rail-positive", "rail-neutral", "rail-negative",
+				.add(DUMMY, "rail-positive", "rail-neutral", "rail-negative",
 						"taxi-positive", "taxi-neutral", "taxi-negative",
 						"bus-positive", "bus-neutral", "bus-negative",
 						"not-relevant").build();
-		attributes.add(new Attribute("class", values));
-		attrIndices.put("class", attributes.size() - 1);
+		attributes.add(new Attribute(name, values));
+		// attrIndices.put(name, attributes.size() - 1);
 
-		// Tweet Id attribute (nominal)
+		// Tweet Id (nominal)
 
+		name = "id";
 		values = new ArrayList<String>(ids.size() + 1);
-		values.add("dummy");
+		values.add(DUMMY);
 		values.addAll(ids);
-		attributes.add(new Attribute("id", values));
-		attrIndices.put("id", attributes.size() - 1);
+		attributes.add(new Attribute(name, values));
+		// attrIndices.put(name, attributes.size() - 1);
 
-		// Lexical errors attribute (numeric)
+		// Lexical errors (numeric)
 
-		attributes.add(new Attribute("lexical_errors"));
-		attrIndices.put("lexical_errors", attributes.size() - 1);
+		name = "lexical_errors";
+		attributes.add(new Attribute(name));
+		// attrIndices.put(name, attributes.size() - 1);
 
+		// #Uppercase characters (numeric)
+
+		name = "uppercase_characters";
+		attributes.add(new Attribute(name));
+		// attrIndices.put(name, attributes.size() - 1);
+
+		// #Punctuation or symbol characters (numeric)
+
+		name = "punctuation_symbol_characters";
+		attributes.add(new Attribute(name));
+		// attrIndices.put(name, attributes.size() - 1);
+
+		// #Punctuation or symbol characters (numeric)
+
+		name = "text_length";
+		attributes.add(new Attribute(name));
+		// attrIndices.put(name, attributes.size() - 1);
+
+		return attributes;
+	}
+
+	private static ArrayList<Attribute> bagOfWordsAttributes(Set<String> vocab) {
+		ArrayList<Attribute> attributes = new ArrayList<Attribute>(vocab.size());
+		for (String name : vocab) {
+			attributes.add(new Attribute(name));
+			// attrIndices.put(name, attributes.size() - 1);
+		}
 		return attributes;
 	}
 }

@@ -74,7 +74,7 @@ public final class SpellChecker {
 			
 			
 			while ((line = br.readLine()) != null) {
-				values = Splitter.on(TAB_SEPARATOR).trimResults()
+				values = Splitter.on(TAB).trimResults()
 						.splitToList(line);
 				text = values.get(textIndex);
 				lexicalErrors = countLexicalErrors(text);
@@ -82,7 +82,7 @@ public final class SpellChecker {
 				// End of line may have multiple tab chars
 				// Trim all tab chars from end of line
 				
-				line = TAB_SEPARATOR.trimTrailingFrom(line);
+				line = TAB.trimTrailingFrom(line);
 				
 				sb = new StringBuilder(line);
 				sb.append("\t");

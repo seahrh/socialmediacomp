@@ -88,7 +88,7 @@ public final class ArffGenerator {
 
 			while ((line = br.readLine()) != null) {
 
-				values = Splitter.on(TAB_SEPARATOR).trimResults()
+				values = Splitter.on(TAB).trimResults()
 						.splitToList(line);
 
 				valuesSize = values.size();
