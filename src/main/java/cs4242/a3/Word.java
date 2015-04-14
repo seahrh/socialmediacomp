@@ -231,19 +231,7 @@ public class Word {
 		this.stronglySubjective = stronglySubjective;
 	}
 
-	public boolean alphanumericWithAtLeastOneLetter() {
-		
-		
-		// Only use Unicode letters and digits,
-		// otherwise cannot be saved as ARFF
-		
-		// Alphanumeric
-		if (CharMatcher.inRange('a', 'z').or(CharMatcher.inRange('0', '9')).matchesAllOf(normalizedTerm)) {
-			// Alphanumeric with at least one letter
-			return CharMatcher.inRange('a', 'z').matchesAnyOf(normalizedTerm); 
-		}
-		return false;
-	}
+	
 
 	public static String concat(List<Word> features, char separator) {
 		List<String> result = new ArrayList<String>();

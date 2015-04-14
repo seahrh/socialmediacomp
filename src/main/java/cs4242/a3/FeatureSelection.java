@@ -30,7 +30,7 @@ public final class FeatureSelection {
 		    selection.setEvaluator(corrEval);
 		    selection.setSearch(ranker);
 		    selection.SelectAttributes(data);
-		    ArffGenerator.spool(selection.toResultsString(), outFilePath);
+		    FileUtil.save(selection.toResultsString(), outFilePath);
 		    
 		} catch (Exception e) {
 			

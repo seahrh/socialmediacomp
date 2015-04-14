@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 public class FeatureVector {
+	
+	private static final boolean USE_PREDEFINED_VOCABULARY = Boolean.getBoolean("a3.vocab.predefined");
 
 	// private static ArrayList<Attribute> attributes;
 	// private static Map<String, Integer> attrIndices;
@@ -74,7 +76,7 @@ public class FeatureVector {
 
 			// Skip tweets that have less than 2 distinct words
 
-			if (localVocab.size() > 1) {
+			if (USE_PREDEFINED_VOCABULARY || localVocab.size() > 1) {
 				filtered.add(fv);
 				globalVocab.addAll(localVocab);
 			}
@@ -173,10 +175,22 @@ public class FeatureVector {
 	private Set<String> vocabulary(List<Word> words) {
 
 		Set<String> vocab = new HashSet<String>();
+		
 		String v = "";
+		boolean valid = false;
+		
 		for (Word word : words) {
-			if (validVocab(word)) {
-				v = word.toString();
+			v = word.toString();
+			valid = false;
+			
+			if (USE_PREDEFINED_VOCABULARY) {
+				valid = Vocabulary.has(v);
+			} else {
+				valid = Vocabulary.valid(word);
+			}
+			
+			if (valid) {
+				
 				attrValues.put(v, 1d);
 				vocab.add(v);
 			}
@@ -184,14 +198,7 @@ public class FeatureVector {
 		return vocab;
 	}
 
-	public static boolean validVocab(Word word) {
-
-		String pos = word.pos();
-		if (VOCABULARY_WHITELIST.contains(pos) && word.alphanumericWithAtLeastOneLetter()) {
-			return true;
-		}
-		return false;
-	}
+	
 
 	public static Instances header(ArrayList<Attribute> attributes) {
 

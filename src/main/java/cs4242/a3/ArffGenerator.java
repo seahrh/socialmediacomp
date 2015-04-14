@@ -235,17 +235,6 @@ public final class ArffGenerator {
 		return data;
 	}
 	
-	public static void spool(String content, String filePath) throws IOException {
-		BufferedWriter bw = null;
-		try {
-			bw = new BufferedWriter(new FileWriter(new File(filePath)));
-			bw.write(content);
-		} finally {
-			if (bw != null) {
-				bw.close();
-			}
-		}
-		System.out.printf("Written file: %s\n", filePath);
-	} 
+	
 
 }
