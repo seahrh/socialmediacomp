@@ -19,11 +19,11 @@ public class Word {
 
 	private static final char SEPARATOR = '_';
 
-	private static final CharMatcher NORMALIZE_HASHTAG = CharMatcher.anyOf(HEX
-			.removeFrom(SYMBOL_CHARACTERS));
+	//private static final CharMatcher NORMALIZE_HASHTAG = CharMatcher.anyOf(HEX
+		//	.removeFrom(SYMBOL_CHARACTERS));
 
-	private static final CharMatcher NORMALIZE_MENTION = CharMatcher
-			.anyOf((AMPERSAND.or(UNDERSCORE).removeFrom(SYMBOL_CHARACTERS)));
+	//private static final CharMatcher NORMALIZE_MENTION = CharMatcher
+		//	.anyOf((AMPERSAND.or(UNDERSCORE).removeFrom(SYMBOL_CHARACTERS)));
 
 	// Immutable fields
 
@@ -247,15 +247,16 @@ public class Word {
 
 		// Remove all punctuation, symbols
 
-		String val = PUNCTUATION.removeFrom(term);
+		String val = PUNCTUATION.or(SYMBOLS).removeFrom(term);
 
-		if (pos.equals("HT")) {
-			val = NORMALIZE_HASHTAG.removeFrom(val);
-		} else if (pos.equals("USR")) {
-			val = NORMALIZE_MENTION.removeFrom(val);
-		} else {
-			val = SYMBOLS.removeFrom(val);
-		}
+		
+		//if (pos.equals("HT")) {
+			//val = NORMALIZE_HASHTAG.removeFrom(val);
+		//} else if (pos.equals("USR")) {
+			//val = NORMALIZE_MENTION.removeFrom(val);
+		//} else {
+			//val = SYMBOLS.removeFrom(val);
+		//}
 
 		if (!val.isEmpty()) {
 			val = val.toLowerCase();

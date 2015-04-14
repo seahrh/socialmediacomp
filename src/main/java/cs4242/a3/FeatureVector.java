@@ -63,12 +63,17 @@ public class FeatureVector {
 		Set<String> globalVocab = new HashSet<String>();
 		Set<String> localVocab = null;
 		List<FeatureVector> filtered = new ArrayList<FeatureVector>();
+		List<Word> words;
 
 		for (FeatureVector fv : featureVectors) {
-			localVocab = fv.bagOfWords();
+			words = fv.bagOfWords();
 			
+			words = fv.sentiment(words);
+
+			localVocab = fv.vocabulary(words);
+
 			// Skip tweets that have less than 2 distinct words
-			
+
 			if (localVocab.size() > 1) {
 				filtered.add(fv);
 				globalVocab.addAll(localVocab);
@@ -134,14 +139,40 @@ public class FeatureVector {
 		return inst;
 	}
 
-	private Set<String> bagOfWords() {
+	private List<Word> bagOfWords() {
 		List<Word> words = PartOfSpeech.tagAsListOfWords(text);
-		Set<String> vocab = new HashSet<String>();
-		
+
+		return words;
+	}
+
+	private List<Word> sentiment(List<Word> words) {
+
 		// Detect negation
-		
+
 		words = Negation.detect(words);
 
+		// Detect sentiment
+
+		words = Sentiment.detect(words);
+
+		// Count sentiment words
+
+		Map<String, Double> scores = Sentiment.countSentiment(words);
+		String attrName;
+		Double score;
+		
+		for (Map.Entry<String, Double> entry : scores.entrySet()) {
+			attrName = entry.getKey();
+			score = entry.getValue();
+			attrValues.put(attrName, score);
+		}
+		
+		return words;
+	}
+
+	private Set<String> vocabulary(List<Word> words) {
+
+		Set<String> vocab = new HashSet<String>();
 		String v = "";
 		for (Word word : words) {
 			if (validVocab(word)) {
@@ -150,7 +181,6 @@ public class FeatureVector {
 				vocab.add(v);
 			}
 		}
-
 		return vocab;
 	}
 
@@ -175,54 +205,65 @@ public class FeatureVector {
 	private static ArrayList<Attribute> attributes(Set<String> ids) {
 
 		final String DUMMY = "dummy";
-		String name = "";
 		ArrayList<Attribute> attributes = new ArrayList<Attribute>();
 		// attrIndices = new HashMap<String, Integer>();
 
 		// Class (nominal)
 
-		name = "class";
 		List<String> values = ImmutableList
 				.<String> builder()
 				.add(DUMMY, "rail-positive", "rail-neutral", "rail-negative",
 						"taxi-positive", "taxi-neutral", "taxi-negative",
 						"bus-positive", "bus-neutral", "bus-negative",
 						"not-relevant").build();
-		attributes.add(new Attribute(name, values));
-		// attrIndices.put(name, attributes.size() - 1);
+		attributes.add(new Attribute("class", values));
 
 		// Tweet Id (nominal)
 
-		name = "id";
 		values = new ArrayList<String>(ids.size() + 1);
 		values.add(DUMMY);
 		values.addAll(ids);
-		attributes.add(new Attribute(name, values));
-		// attrIndices.put(name, attributes.size() - 1);
+		attributes.add(new Attribute("id", values));
+
+		// #Strong positive words (numeric)
+
+		attributes.add(new Attribute("strong_positive"));
+
+		// #Strong negative words (numeric)
+
+		attributes.add(new Attribute("strong_negative"));
+
+		// #Strong neutral words (numeric)
+
+		attributes.add(new Attribute("strong_neutral"));
+
+		// #Weak positive words (numeric)
+
+		attributes.add(new Attribute("weak_positive"));
+
+		// #Weak negative words (numeric)
+
+		attributes.add(new Attribute("weak_negative"));
+
+		// #Weak neutral words (numeric)
+
+		attributes.add(new Attribute("weak_neutral"));
 
 		// Lexical errors (numeric)
 
-		name = "lexical_errors";
-		attributes.add(new Attribute(name));
-		// attrIndices.put(name, attributes.size() - 1);
+		attributes.add(new Attribute("lexical_errors"));
 
 		// #Uppercase characters (numeric)
 
-		name = "uppercase_characters";
-		attributes.add(new Attribute(name));
-		// attrIndices.put(name, attributes.size() - 1);
+		attributes.add(new Attribute("uppercase_characters"));
 
 		// #Punctuation or symbol characters (numeric)
 
-		name = "punctuation_symbol_characters";
-		attributes.add(new Attribute(name));
-		// attrIndices.put(name, attributes.size() - 1);
+		attributes.add(new Attribute("punctuation_symbol_characters"));
 
 		// #Punctuation or symbol characters (numeric)
 
-		name = "text_length";
-		attributes.add(new Attribute(name));
-		// attrIndices.put(name, attributes.size() - 1);
+		attributes.add(new Attribute("text_length"));
 
 		return attributes;
 	}

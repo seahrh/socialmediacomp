@@ -45,24 +45,23 @@ public final class PartOfSpeech {
 			"WP$", "WRB");
 
 	public static final Set<String> VOCABULARY_WHITELIST;
-	
+
 	public static final Set<String> TERM_NORMALIZATION_WHITELIST;
-	
+
 	public static final Set<String> NEGATION_WHITELIST;
 
 	private static final MaxentTagger tagger = tagger();
-	
+
 	private static final Morphology lemmatizer = new Morphology();
 
 	static {
-		Set<String> set = Sets.newHashSet("HT", "USR", "CD", "FW",
-				"RP", "UH");
+		Set<String> set = Sets.newHashSet("HT", "USR", "CD", "FW", "RP", "UH");
 		set.addAll(ADJECTIVE_POS);
 		set.addAll(NOUN_POS);
 		set.addAll(ADVERB_POS);
 		set.addAll(VERB_POS);
 		VOCABULARY_WHITELIST = set;
-		
+
 		set = Sets.newHashSet("HT", "USR");
 		set.addAll(ADJECTIVE_POS);
 		set.addAll(NOUN_POS);
@@ -72,7 +71,7 @@ public final class PartOfSpeech {
 		set.addAll(WH_POS);
 		set.addAll(OTHERS_POS);
 		TERM_NORMALIZATION_WHITELIST = set;
-		
+
 		set = Sets.newHashSet();
 		set.addAll(ADJECTIVE_POS);
 		set.addAll(NOUN_POS);
@@ -114,11 +113,11 @@ public final class PartOfSpeech {
 	public static String tag(String s) {
 		return tagger.tagString(s);
 	}
-	
+
 	public static String lemmatize(String word, String pos) {
 		return lemmatizer.lemma(word, pos);
 	}
-	
+
 	public static String stem(String word) {
 		return lemmatizer.stem(word);
 	}
