@@ -1,12 +1,11 @@
 package cs4242.a3;
 
 import static com.google.common.base.Preconditions.checkState;
-import static cs4242.a3.StringUtil.*;
+import static cs4242.a3.StringUtil.TAB;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,7 +21,6 @@ import weka.core.SparseInstance;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.ArffSaver;
 
-import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.primitives.Ints;
 
@@ -45,8 +43,8 @@ public final class ArffGenerator {
 
 			fvs = extract();
 			data = FeatureVector.getInstances(fvs, ids);
-			other = loadArff(System.getProperty("a3.input.crtdt.file.path"));
-			data = leftJoin(data, other, "id");
+			//other = loadArff(System.getProperty("a3.input.crtdt.file.path"));
+			//data = leftJoin(data, other, "id");
 			saveArff(data);
 
 		} catch (Exception e) {
@@ -231,8 +229,23 @@ public final class ArffGenerator {
 	public static Instances loadArff(String filePath) throws IOException {
 		ArffLoader loader = new ArffLoader();
 		loader.setSource(new File(filePath));
+		//loader.getStructure();
 		Instances data = loader.getDataSet();
+		
 		return data;
 	}
+	
+	public static void spool(String content, String filePath) throws IOException {
+		BufferedWriter bw = null;
+		try {
+			bw = new BufferedWriter(new FileWriter(new File(filePath)));
+			bw.write(content);
+		} finally {
+			if (bw != null) {
+				bw.close();
+			}
+		}
+		System.out.printf("Written file: %s\n", filePath);
+	} 
 
 }

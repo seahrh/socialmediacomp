@@ -187,7 +187,7 @@ public class FeatureVector {
 	public static boolean validVocab(Word word) {
 
 		String pos = word.pos();
-		if (VOCABULARY_WHITELIST.contains(pos) && word.hasLetter()) {
+		if (VOCABULARY_WHITELIST.contains(pos) && word.alphanumericWithAtLeastOneLetter()) {
 			return true;
 		}
 		return false;
@@ -195,7 +195,7 @@ public class FeatureVector {
 
 	public static Instances header(ArrayList<Attribute> attributes) {
 
-		final String RELATION_NAME = "A3 features";
+		final String RELATION_NAME = "a3train";
 		final int CAPACITY = 2000;
 		Instances header = new Instances(RELATION_NAME, attributes, CAPACITY);
 		header.setClass(header.attribute("class"));
