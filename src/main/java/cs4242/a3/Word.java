@@ -74,10 +74,10 @@ public class Word {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		if (negated) {
-			sb.append("NOT");
-			sb.append(SEPARATOR);
-		}
+		//if (negated) {
+			//sb.append("NOT");
+			//sb.append(SEPARATOR);
+		//}
 
 		sb.append(normalizedTerm);
 		sb.append(SEPARATOR);

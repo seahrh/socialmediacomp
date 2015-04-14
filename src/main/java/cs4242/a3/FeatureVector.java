@@ -176,23 +176,23 @@ public class FeatureVector {
 
 		Set<String> vocab = new HashSet<String>();
 		
-		String v = "";
+		String attrName = "";
 		boolean valid = false;
 		
 		for (Word word : words) {
-			v = word.toString();
+			attrName = word.toString();
 			valid = false;
 			
 			if (USE_PREDEFINED_VOCABULARY) {
-				valid = Vocabulary.has(v);
+				valid = Vocabulary.has(attrName);
 			} else {
 				valid = Vocabulary.valid(word);
 			}
 			
 			if (valid) {
 				
-				attrValues.put(v, 1d);
-				vocab.add(v);
+				attrValues.put(attrName, 1d);
+				vocab.add(attrName);
 			}
 		}
 		return vocab;

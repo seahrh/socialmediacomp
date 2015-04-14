@@ -10,8 +10,10 @@ import weka.classifiers.bayes.NaiveBayesMultinomialUpdateable;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.classifiers.meta.Stacking;
+import weka.classifiers.meta.Vote;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
+import weka.core.SelectedTag;
 import weka.core.SerializationHelper;
 import weka.filters.Filter;
 import weka.filters.MultiFilter;
@@ -22,7 +24,7 @@ public final class Trainer {
 
 	private static final int FOLDS = 10;
 	private static final int SEED = 1;
-	private static final int THREADS = 3;
+	//private static final int THREADS = 100;
 
 	private Trainer() {
 		// Private constructor, not meant to be instantiated
@@ -36,29 +38,32 @@ public final class Trainer {
 				.getProperty("a3.randomforest.eval.file.path");
 		String svmFilePath = System.getProperty("a3.svm.eval.file.path");
 		String nbFilePath = System.getProperty("a3.naivebayes.eval.file.path");
-		String stackingFilePath = System
-				.getProperty("a3.stacking.eval.file.path");
+		String eFilePath = System
+				.getProperty("a3.ensemble.eval.file.path");
 
 		String rfModelPath = System
 				.getProperty("a3.randomforest.model.file.path");
 		String svmModelPath = System.getProperty("a3.svm.model.file.path");
 		String nbModelPath = System
 				.getProperty("a3.naivebayes.model.file.path");
-		String stackingModelPath = System
-				.getProperty("a3.stacking.model.file.path");
+		String eModelPath = System
+				.getProperty("a3.ensemble.model.file.path");
 
 		final String CLASS_NAME = "class";
 		FilteredClassifier stackedEnsemble;
+		FilteredClassifier voteEnsemble;
 		FilteredClassifier randomForest;
 		FilteredClassifier svm;
 		FilteredClassifier naiveBayes;
-		long startTime = System.currentTimeMillis();
+		long startTime = 0;
+		long elapsedTime = 0;
 
 		try {
 
 			data = ArffGenerator.loadArff(inFilePath);
 			data.setClass(data.attribute(CLASS_NAME));
 
+			
 			randomForest = randomForest(data);
 			saveValidationResult(randomForest, data, CLASS_NAME, rfFilePath);
 
@@ -66,41 +71,67 @@ public final class Trainer {
 			// Return the model that is trained on the entire train set
 
 			randomForest = randomForest(data);
+			startTime = System.currentTimeMillis();
 			randomForest.buildClassifier(data);
+			elapsedTime = System.currentTimeMillis() - startTime;
+			System.out.printf("Done! Random forest run time: %ss\n",
+					elapsedTime / 1000);
 			saveModel(randomForest, rfModelPath);
 
+			
 			svm = svm(data);
 			saveValidationResult(svm, data, CLASS_NAME, svmFilePath);
 			svm = svm(data);
+			startTime = System.currentTimeMillis();
 			svm.buildClassifier(data);
+			elapsedTime = System.currentTimeMillis() - startTime;
+			System.out.printf("Done! SVM run time: %ss\n", elapsedTime / 1000);
 			saveModel(svm, svmModelPath);
 
+			
 			naiveBayes = naiveBayes(data);
 			saveValidationResult(naiveBayes, data, CLASS_NAME, nbFilePath);
 			naiveBayes = naiveBayes(data);
+			startTime = System.currentTimeMillis();
 			naiveBayes.buildClassifier(data);
+			elapsedTime = System.currentTimeMillis() - startTime;
+			System.out.printf("Done! Naive Bayes run time: %ss\n",
+					elapsedTime / 1000);
 			saveModel(naiveBayes, nbModelPath);
 
-			// Reset all base learners (untrained)
-			
-			randomForest = randomForest(data);
-			svm = svm(data);
-			naiveBayes = naiveBayes(data);
 			Classifier[] baseLearners = { randomForest, svm, naiveBayes };
+			
+			voteEnsemble = votingEnsemble(baseLearners, data);
+			saveValidationResult(voteEnsemble, data, CLASS_NAME,
+					eFilePath);
+			voteEnsemble = votingEnsemble(baseLearners, data);
+			startTime = System.currentTimeMillis();
+			voteEnsemble.buildClassifier(data);
+			elapsedTime = System.currentTimeMillis() - startTime;
+			System.out
+					.printf("Done! Vote run time: %ss\n", elapsedTime / 1000);
+			saveModel(voteEnsemble, eModelPath);
 
-			stackedEnsemble = stackingEnsemble(baseLearners, data);
-			saveValidationResult(stackedEnsemble, data, CLASS_NAME,
-					stackingFilePath);
-			stackedEnsemble = stackingEnsemble(baseLearners, data);
-			stackedEnsemble.buildClassifier(data);
-			saveModel(stackedEnsemble, stackingModelPath);
+			// Reset all base learners (untrained)
+
+			// randomForest = randomForest(data);
+			// svm = svm(data);
+			// naiveBayes = naiveBayes(data);
+			// Classifier[] baseLearners = { randomForest, svm, naiveBayes };
+			// startTime = System.currentTimeMillis();
+			// stackedEnsemble = stackingEnsemble(baseLearners, data);
+			// saveValidationResult(stackedEnsemble, data, CLASS_NAME,
+			// stackingFilePath);
+			// stackedEnsemble = stackingEnsemble(baseLearners, data);
+			// stackedEnsemble.buildClassifier(data);
+			// elapsedTime = System.currentTimeMillis() - startTime;
+			// System.out.printf("Done! Stacking run time: %sm\n", elapsedTime /
+			// 60000);
+			// saveModel(stackedEnsemble, stackingModelPath);
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-		long elapsedTime = System.currentTimeMillis() - startTime;
-		System.out.printf("Done! Run time: %ss\n", elapsedTime / 1000);
 
 	}
 
@@ -168,7 +199,13 @@ public final class Trainer {
 			throws Exception {
 		FilteredClassifier fc = new FilteredClassifier();
 		RandomForest rf = new RandomForest();
-		rf.setNumTrees(2000);
+		rf.setNumTrees(400);
+		
+		int mtry = (int) Math.log(train.numAttributes()) + 1;
+		
+		rf.setNumFeatures(mtry);
+		
+		System.out.printf("Mtry: %s\n", mtry);
 
 		MultiFilter filters = filters(train);
 		fc.setFilter(filters);
@@ -192,7 +229,6 @@ public final class Trainer {
 			throws Exception {
 		FilteredClassifier fc = new FilteredClassifier();
 		NaiveBayesMultinomialUpdateable nb = new NaiveBayesMultinomialUpdateable();
-		
 
 		MultiFilter filters = filters(train);
 		fc.setFilter(filters);
@@ -204,9 +240,29 @@ public final class Trainer {
 			Classifier[] baseLearners, Instances train) throws Exception {
 		FilteredClassifier fc = new FilteredClassifier();
 		Stacking ensemble = new Stacking();
-		ensemble.setNumExecutionSlots(THREADS);
+		//ensemble.setNumExecutionSlots(THREADS);
 		ensemble.setClassifiers(baseLearners);
+		ensemble.setNumFolds(FOLDS);
 
+		MultiFilter filters = filters(train);
+		fc.setFilter(filters);
+		fc.setClassifier(ensemble);
+		return fc;
+	}
+
+	private static FilteredClassifier votingEnsemble(
+			Classifier[] baseLearners, Instances train) throws Exception {
+		FilteredClassifier fc = new FilteredClassifier();
+		Vote ensemble = new Vote();
+		//ensemble.setNumExecutionSlots(THREADS);
+		// ensemble.setClassifiers(baseLearners);
+
+		for (Classifier cls : baseLearners) {
+			ensemble.addPreBuiltClassifier(cls);
+		}
+		
+		ensemble.setCombinationRule(new SelectedTag(Vote.PRODUCT_RULE, Vote.TAGS_RULES));
+		
 		MultiFilter filters = filters(train);
 		fc.setFilter(filters);
 		fc.setClassifier(ensemble);
