@@ -1,11 +1,13 @@
 package cs4242.a3;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static cs4242.a3.StringUtil.trim;
+import static cs4242.a3.MyContextListener.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -17,16 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import weka.classifiers.Classifier;
-import weka.core.Attribute;
-import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.SparseInstance;
-import weka.core.tokenizers.WordTokenizer;
-import weka.filters.Filter;
-import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 
 public class TransitSentimentServlet extends HttpServlet {
@@ -37,141 +33,69 @@ public class TransitSentimentServlet extends HttpServlet {
 	public void doGet(HttpServletRequest req, HttpServletResponse rsp)
 			throws IOException, ServletException {
 		ServletContext context = getServletContext();
-		boolean ajax = false;
-
 		
 
-		String testString = Strings.nullToEmpty(req.getParameter("t"));
+		String text = trim(req.getParameter("t"));
 
-		if (!testString.isEmpty()) {
-			log.info("test string: {}", testString);
-			List<PredictionResult> result = new ArrayList<PredictionResult>();
-			// FeatureExtractor fe =
-			// MyContextListener.featureExtractor(context);
-			// Instances header = MyContextListener.instancesHeader(context);
-			// Instances testData = extract(testString, fe, header);
-			// Map<String, Classifier> sentimentClassifiers = MyContextListener
-			// .sentimentClassifiers(context);
-			// Map<String, Classifier> aspectClassifiers = MyContextListener
-			// .aspectClassifiers(context);
-
+		if (!text.isEmpty()) {
+			log.info("Text input: [{}]", text);
+			
+			//int lexicalErrors = SpellChecker.countLexicalErrors(text);
+			int lexicalErrors = 1;
+			List<FeatureVector> input = new ArrayList<FeatureVector>(1);
+			FeatureVector fv = new FeatureVector(text, lexicalErrors);
+			input.add(fv);
+			Set<String> ids = Sets.newHashSet();
+			Instances test = FeatureVector.getInstances(input, ids);
+			test.setClass(test.attribute("class"));
+			List<PredictionResult> results = new ArrayList<PredictionResult>();
+			PredictionResult result;
+			double classValue = 0;
+			Classifier cls;
 			try {
-
-				// result = classify(testData, sentimentClassifiers,
-				// "sentiment");
-				// result.addAll(classify(testData, aspectClassifiers,
-				// "aspect"));
+				
+				cls = (Classifier) context.getAttribute(STACK_ENSEMBLE_CLASSIFIER);
+				classValue = cls.classifyInstance(test.firstInstance());
+				result = new PredictionResult(STACK_ENSEMBLE_CLASSIFIER, classValue);
+				results.add(result);
+				log.info("Stack ensemble predicts: [{}]", classValue);
+				
+				cls = (Classifier) context.getAttribute(RANDOM_FOREST_CLASSIFIER);
+				classValue = cls.classifyInstance(test.firstInstance());
+				result = new PredictionResult(RANDOM_FOREST_CLASSIFIER, classValue);
+				results.add(result);
+				log.info("Random forest predicts: [{}]", classValue);
+				
+				cls = (Classifier) context.getAttribute(SVM_CLASSIFIER);
+				classValue = cls.classifyInstance(test.firstInstance());
+				result = new PredictionResult(SVM_CLASSIFIER, classValue);
+				results.add(result);
+				log.info("SVM predicts: [{}]", classValue);
+				
+				
+				cls = (Classifier) context.getAttribute(NAIVE_BAYES_CLASSIFIER);
+				classValue = cls.classifyInstance(test.firstInstance());
+				result = new PredictionResult(NAIVE_BAYES_CLASSIFIER, classValue);
+				results.add(result);
+				log.info("Naive Bayes predicts: [{}]", classValue);
+				
+				
+				
 			} catch (Exception e) {
-				e.printStackTrace();
+				log.warn("Failed to classify instance", e);
 			}
 
-			String json = new Gson().toJson(result);
+			String json = new Gson().toJson(results);
 			rsp.setCharacterEncoding("UTF-8");
 			rsp.setContentType("application/json");
 			rsp.getWriter().write(json);
-			ajax = true;
+			return;
 		}
 
-		if (!ajax) {
+		req.getRequestDispatcher("/WEB-INF/pages/index.html").forward(req, rsp);
 
-			req.getRequestDispatcher("/WEB-INF/pages/index.html")
-					.forward(req, rsp);
-
-		}
 	}
 
-	private static Instances stringToWordVector(Instances in) throws Exception {
-		StringToWordVector filter = new StringToWordVector();
-		// filter.setOptions(options);
-		// filter.setLowerCaseTokens(true);
-		filter.setInputFormat(in);
-
-		filter.setTokenizer(tokenizer());
-
-		// TODO should we still use stopwords?
-		// filter.setStopwordsHandler(stopwords(stopwordsFilePath));
-		filter.setAttributeIndices("last");
-
-		Instances out = Filter.useFilter(in, filter);
-
-		return out;
-	}
-
-	private static WordTokenizer tokenizer() {
-		WordTokenizer tokenizer = new WordTokenizer();
-		tokenizer.setDelimiters(" \r\n\t");
-		return tokenizer;
-	}
-
-	private static Instances setHeader(Instances in, Instances header)
-			throws IOException {
-		checkNotNull(header, "Instances header cannot be null");
-
-		Instances out = new Instances(header, in.numInstances());
-
-		List<Attribute> commonAttrs = new ArrayList<Attribute>();
-		List<String> commonAttrsDebug = new ArrayList<String>();
-
-		Attribute attr;
-		SparseInstance inst;
-
-		for (int i = 0; i < in.numAttributes(); i++) {
-			attr = in.attribute(i);
-			if (header.attribute(attr.name()) != null) {
-				// Attribute exists in both header and input data
-
-				commonAttrs.add(attr);
-				commonAttrsDebug.add(attr.name());
-			}
-		}
-
-		for (Instance input : in) {
-
-			inst = new SparseInstance(1d, new double[header.numAttributes()]);
-			inst.setDataset(header);
-			for (Attribute ca : commonAttrs) {
-				if (input.isMissing(ca)) {
-					inst.setMissing(ca);
-				} else {
-					inst.setValue(ca, input.value(ca));
-				}
-
-			}
-
-			out.add(inst);
-		}
-
-		return out;
-	}
-
-	private List<PredictionResult> classify(Instances testData,
-			Map<String, Classifier> classifiers, String target)
-			throws Exception {
-		String name;
-		Classifier cls;
-		List<PredictionResult> result = new ArrayList<PredictionResult>(
-				classifiers.size());
-		double label;
-		target = Strings.nullToEmpty(target);
-
-		if (target.equals("sentiment")) {
-			testData.setClassIndex(0);
-		} else if (target.equals("aspect")) {
-			testData.setClassIndex(1);
-		} else {
-			log.error("Class attribute of the type [{}] is unknown", target);
-			// Force exception by setting class attribute to be undefined
-			testData.setClassIndex(-1);
-		}
-
-		for (Map.Entry<String, Classifier> entry : classifiers.entrySet()) {
-			name = entry.getKey();
-
-			cls = entry.getValue();
-			label = cls.classifyInstance(testData.firstInstance());
-			result.add(new PredictionResult(name, label));
-		}
-		return result;
-	}
+	
 
 }

@@ -22,17 +22,18 @@ import com.google.common.primitives.Ints;
 public final class SpellChecker {
 	
 	private static final JLanguageTool LANGUAGE_TOOL = new JLanguageTool(new BritishEnglish());
+	//private static final JLanguageTool LANGUAGE_TOOL = new JLanguageTool(new English());
 	
 	// Loading the language rules is expensive, so do it in the static block
 	
-	static {
-		try {
-			LANGUAGE_TOOL.activateDefaultPatternRules();
-		} catch (IOException e) {
+	//static {
+		//try {
+			//LANGUAGE_TOOL.activateDefaultPatternRules();
+		//} catch (IOException e) {
 			
-			e.printStackTrace();
-		}
-	}
+			//e.printStackTrace();
+		//}
+	//}
 	
 	private SpellChecker() {
 		// Private constructor, not meant to be instantiated

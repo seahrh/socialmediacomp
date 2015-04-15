@@ -24,10 +24,10 @@ public class MyContextListener implements ServletContextListener {
 	private static final Logger log = LoggerFactory
 			.getLogger(MyContextListener.class);
 
-	public static final String RANDOM_FOREST_CLASSIFIER = "randomforest";
+	public static final String RANDOM_FOREST_CLASSIFIER = "random_forest";
 	public static final String SVM_CLASSIFIER = "svm";
-	public static final String NAIVE_BAYES_CLASSIFIER = "naivebayes";
-	public static final String STACK_ENSEMBLE_CLASSIFIER = "stackensemble";
+	public static final String NAIVE_BAYES_CLASSIFIER = "naive_bayes";
+	public static final String STACK_ENSEMBLE_CLASSIFIER = "stack_ensemble";
 
 	/*
 	 * This will be invoked as part of a warmup request, or the first user

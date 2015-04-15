@@ -33,27 +33,30 @@ public class FeatureVector {
 	private Map<String, Double> attrValues;
 
 	public FeatureVector() {
-		clazz = "";
-		id = "";
+		clazz = null;
+		id = null;
 		text = "";
 		attrValues = new HashMap<String, Double>();
 	}
 
-	public FeatureVector(String text) {
+	public FeatureVector(String text, int lexicalErrors) {
 		this();
 		this.text = CONTROL_CHARACTERS.removeFrom(trim(text));
+		lexicalErrors(lexicalErrors);
 	}
 
-	public FeatureVector(String clazz, String id, String text) {
-		this(text);
-		checkNotNull(clazz, "class must not be null");
-		checkNotNull(id, "id must not be null");
-		this.clazz = clazz;
-		this.id = id;
-	}
+	
 
 	public FeatureVector(String clazz, String id, String text, int lexicalErrors) {
-		this(clazz, id, text);
+		this(text, lexicalErrors);
+		//checkNotNull(clazz, "class must not be null");
+		//checkNotNull(id, "id must not be null");
+		this.clazz = clazz;
+		this.id = id;
+		
+	}
+	
+	private void lexicalErrors(int lexicalErrors) {
 		checkArgument(lexicalErrors >= 0,
 				"Lexical errors must not be a negative number. [%s]",
 				lexicalErrors);
@@ -102,9 +105,19 @@ public class FeatureVector {
 		String attrName = "";
 
 		// Class and tweet id
+		
+		if (trim(clazz).isEmpty()) {
+			inst.setMissing(header.attribute("class"));
+		} else {
+			inst.setValue(header.attribute("class"), clazz);
+		}
 
-		inst.setValue(header.attribute("class"), clazz);
-		inst.setValue(header.attribute("id"), id);
+		if (trim(id).isEmpty()) {
+			inst.setMissing(header.attribute("id"));
+		} else {
+			inst.setValue(header.attribute("id"), id);
+		}
+		
 
 		// #Lexical errors
 		// Invoke spellchecker if the value is not present

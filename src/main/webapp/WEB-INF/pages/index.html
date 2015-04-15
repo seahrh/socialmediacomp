@@ -18,7 +18,7 @@
         <div horizontal layout>
             <div flex></div>
             <div flex ten>
-                <h1>CS4242 Assignment 1</h1>
+                <h1>Sentiment Analysis for Public Transport in Singapore</h1>
                 <p>
                     Classify sentiment and aspect of new tweet.
                 </p>
@@ -34,7 +34,7 @@
                 </div>
                 <hr>
                 <p>
-                    Done by Group 3: Li Xiang, Yang Huiyu, Seah Ru Hong
+                    For CS4242 Assignment 3.
                 </p>
             </div>
             <div flex></div>
@@ -59,7 +59,7 @@
                         input = $inputBox.val();
                         output = "Classify sentiment and aspect:\n\"" + input + "\"\n";
 
-                        $.getJSON("/a1", {
+                        $.getJSON("/a3", {
                             "t" : input
                         }).done(function(data) {
 

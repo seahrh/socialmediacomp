@@ -282,7 +282,7 @@ public final class FeatureExtractor {
 			Map<String, TextFeatureVector> features,
 			Map<String, List<Tweet>> tweets) throws IOException {
 		JLanguageTool langTool = new JLanguageTool(new English());
-		langTool.activateDefaultPatternRules();
+		//langTool.activateDefaultPatternRules();
 		// langTool.setListUnknownWords(true);
 		List<RuleMatch> matches = null;
 		String userId = "";
