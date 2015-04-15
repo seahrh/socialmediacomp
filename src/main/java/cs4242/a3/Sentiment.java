@@ -18,10 +18,14 @@ import cs4242.a3.MpqaClue;
 
 public final class Sentiment {
 
-	private static final Map<String, Set<MpqaClue>> MPQA_LEXICON = mpqa();
+	private static Map<String, Set<MpqaClue>> mpqaLexicon;
 
 	private Sentiment() {
 		// Private constructor, not meant to be instantiated
+	}
+	
+	public static void init(String filePath) {
+		mpqaLexicon = mpqa(filePath);
 	}
 
 	public static List<Word> detect(List<Word> words) {
@@ -36,7 +40,7 @@ public final class Sentiment {
 			normalizedTerm = word.normalizedTerm();
 			pos = word.pos();
 
-			clues = MPQA_LEXICON.get(normalizedTerm);
+			clues = mpqaLexicon.get(normalizedTerm);
 
 			if (clues != null && clues.size() > 0) {
 				for (MpqaClue clue : clues) {
@@ -159,8 +163,8 @@ public final class Sentiment {
 		return result;
 	}
 
-	private static Map<String, Set<MpqaClue>> mpqa() {
-		String filePath = System.getProperty("a3.sentiment.mpqa.file.path");
+	private static Map<String, Set<MpqaClue>> mpqa(String filePath) {
+		//String filePath = System.getProperty("a3.sentiment.mpqa.file.path");
 		Map<String, Set<MpqaClue>> lookup = new HashMap<String, Set<MpqaClue>>();
 		Set<MpqaClue> clues;
 		File file = new File(filePath);

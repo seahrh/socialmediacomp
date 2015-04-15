@@ -50,7 +50,7 @@ public final class PartOfSpeech {
 
 	public static final Set<String> NEGATION_WHITELIST;
 
-	private static final MaxentTagger tagger = tagger();
+	private static MaxentTagger tagger;
 
 	private static final Morphology lemmatizer = new Morphology();
 
@@ -84,11 +84,15 @@ public final class PartOfSpeech {
 	private PartOfSpeech() {
 		// Private constructor, not meant to be instantiated
 	}
+	
+	public static void init(String taggerFilePath) {
+		tagger = tagger(taggerFilePath);
+	}
 
-	private static MaxentTagger tagger() {
+	private static MaxentTagger tagger(String taggerFilePath) {
 
 		MaxentTagger tagger = null;
-		String taggerFilePath = System.getProperty("a3.pos.tagger.file.path");
+		//String taggerFilePath = System.getProperty("a3.pos.tagger.file.path");
 		int threads = Ints
 				.tryParse(System.getProperty("a3.pos.tagger.threads"));
 		Properties config = new Properties();
@@ -97,7 +101,7 @@ public final class PartOfSpeech {
 		try {
 			if (taggerFilePath.endsWith(".zip")) {
 				String modelName = Files
-						.getNameWithoutExtension(taggerFilePath);
+						.getNameWithoutExtension(taggerFilePath) + ".model";
 				tagger = new MyMaxentTagger(taggerFilePath, modelName, config);
 			} else {
 

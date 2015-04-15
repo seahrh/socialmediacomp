@@ -1,28 +1,28 @@
 package cs4242.a3;
 
 import static cs4242.a3.PartOfSpeech.VOCABULARY_WHITELIST;
-import static cs4242.a3.StringUtil.trim;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.base.CharMatcher;
 
 public final class Vocabulary {
 
-	private static final Set<String> VOCABULARY = FileUtil.load(
-			System.getProperty("a3.vocab.file.path"));
+	private static Set<String> vocab;
+	
+	//private static final Set<String> VOCABULARY = FileUtil.load(
+		//	System.getProperty("a3.vocab.file.path"));
 
 	private Vocabulary() {
 		// Private constructor, not meant to be instantiated
 	}
+	
+	public static void init(String filePath) {
+		vocab =  FileUtil.load(filePath);
+	}
 
 	public static boolean has(String word) {
-		return VOCABULARY.contains(word);
+		return vocab.contains(word);
 	}
 
 	public static boolean valid(Word word) {

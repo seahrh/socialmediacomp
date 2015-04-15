@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
-    <application>gettehcode</application>
+    <application>transitsentiment</application>
     <version>${appengine.app.version}</version>
     <!-- Allows App Engine to send multiple requests to one instance in parallel: -->
 	<threadsafe>true</threadsafe>
 	<system-properties>
+	    <!-- Root directory for webpages -->
+		<property name="a3.pages.root" value="/WEB-INF/pages/" />
+		<property name="a3.sentiment.mpqa.file.path" value="/WEB-INF/lexicon/mpqa-singlish.tff" />
+		<property name="a3.models.randomforest.file.path" value="/WEB-INF/models/randomforest.zip" />
+		<property name="a3.models.svm.file.path" value="/WEB-INF/models/svm.zip" />
+		<property name="a3.models.naivebayes.file.path" value="/WEB-INF/models/naivebayes.zip" />
+		<property name="a3.models.stack.file.path" value="/WEB-INF/models/stack.zip" />
+		<property name="a3.pos.tagger.file.path" value="/WEB-INF/postagger/gate-EN-twitter-fast.zip" />
+		<property name="a3.pos.tagger.threads" value="1" />
+		<property name="a3.vocab.file.path" value="/WEB-INF/vocab/vocab.txt" />
+		<property name="a3.vocab.predefined" value="true" />
 		<property name="java.util.logging.config.file" value="WEB-INF/logging.properties" />
 	</system-properties>
 	<warmup-requests-enabled>true</warmup-requests-enabled>
