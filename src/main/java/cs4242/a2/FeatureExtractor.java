@@ -1,39 +1,27 @@
 package cs4242.a2;
 
-import static com.google.common.base.Preconditions.checkState;
-import static cs4242.a2.FileUtil.save;
-import static cs4242.a2.StringUtil.*;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import me.champeau.ld.UberLanguageDetector;
-
-import org.languagetool.JLanguageTool;
-import org.languagetool.language.English;
-import org.languagetool.rules.RuleMatch;
-
-import weka.core.Attribute;
-import weka.core.Instances;
-import weka.core.converters.ArffSaver;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
 import com.google.gson.Gson;
-
-import edu.stanford.nlp.process.Morphology;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import org.languagetool.JLanguageTool;
+import org.languagetool.language.English;
+import org.languagetool.rules.RuleMatch;
+import weka.core.Attribute;
+import weka.core.Instances;
+import weka.core.converters.ArffSaver;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkState;
+import static cs4242.a2.FileUtil.save;
+import static cs4242.a2.StringUtil.lowerTrim;
 
 public final class FeatureExtractor {
 
@@ -259,23 +247,6 @@ public final class FeatureExtractor {
 		System.out.println("Loaded POS tagger results");
 
 		return taggedTweets;
-	}
-
-	public static void detectLang(Map<String, List<Tweet>> tweets) {
-		UberLanguageDetector detector = UberLanguageDetector.getInstance();
-		String text = "";
-		String lang = "";
-		List<Tweet> tws = null;
-		for (Map.Entry<String, List<Tweet>> entry : tweets.entrySet()) {
-			tws = entry.getValue();
-			for (Tweet tw : tws) {
-				text = tw.text();
-				lang = detector.detectLang(text);
-				if (!lang.equals("en")) {
-					System.out.printf("%s: %s\n", lang, text);
-				}
-			}
-		}
 	}
 
 	public static Map<String, TextFeatureVector> checkSpelling(
